@@ -1,10 +1,9 @@
 # This Python file uses the following encoding: utf-8
 import sys
 import os.path
-import _thread
 import threading
 from datetime import datetime
-from PySide2 import QtGui
+from PySide2 import QtGui, QtWidgets
 from PySide2.QtMultimedia import QMediaPlayer, QMediaContent
 from PySide2.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 
@@ -12,7 +11,7 @@ from language import Language
 from ui_mainwindow import Ui_MainWindow
 from char_map import CharMap
 from PySide2.QtCore import QEvent, QTimer, QSettings, QTranslator, QXmlStreamWriter, QIODevice, QFile, QCoreApplication, \
-    Qt, QUrl
+    Qt, QUrl, Signal, QThread
 from PySide2.QtGui import QFont
 from obswebsocket import obsws, requests
 
@@ -74,18 +73,36 @@ class Settings(object):
     customSpeed = False
     customTenthSpeed = False
 
+
 class Play(object):
     player = QMediaPlayer(None)
     playEnabled = False
     playPath = ""
     playVolume = 100
 
+# ------------------------------------ T H R E A D ---------------------------------
 
+# class setObsTextThread(QThread):
+#
+#     errorSignal = Signal(str)
+#
+#     def __init__(self, source, text):
+#         QThread.__init__(self)
+#
+#         self.source = source
+#         self.text = text
+#         #print("Create thread")
+#
+#     def run(self):
+#         self.errorSignal.connect(window.obs_connection_lost)
+#         #print("Starting Thread")
+#         try:
+#             #print("thread try block")
+#             window.obs.call(requests.SetSourceSettings(self.source, {'text': self.text}))
+#         except:
+#             self.errorSignal.emit("error")
 
-
-
-
-
+# ----------------------------------------------------------------------------------
 
 
 
@@ -142,68 +159,76 @@ class Files(object):
     except FileExistsError:
         pass
 
-    @staticmethod
-    def save(filepath, value):
-        if Settings.writeFile:
-            file = open(filepath, "w")
-            file.write(value)
-            file.close()
-        if Settings.writeXml:
-            Files.write_xml()
-        if Obs.connected:
-            if filepath == Files.homePath:
-                window.obs.call(requests.SetSourceSettings(Obs.homeSource, {'text':value}))
-            elif filepath == Files.awayPath:
-                window.obs.call(requests.SetSourceSettings(Obs.awaySource, {'text':value}))
-            elif filepath == Files.homeScorePath:
-                window.obs.call(requests.SetSourceSettings(Obs.homeScoreSource, {'text':value}))
-            elif filepath == Files.awayScorePath:
-                window.obs.call(requests.SetSourceSettings(Obs.awayScoreSource, {'text':value}))
-            elif filepath == Files.periodPath:
-                window.obs.call(requests.SetSourceSettings(Obs.periodSource, {'text':value}))
-            elif filepath == Files.timePath:
-                threading.Thread(target=window.set_time_obs, args=(Obs.clockSource, value)).start()
-            elif filepath == Files.overTimePath:
-                threading.Thread(target=window.set_time_obs, args=(Obs.overTimeSource, value)).start()
-            elif filepath == Files.halfTimePath:
-                threading.Thread(target=window.set_time_obs, args=(Obs.halfTimeSource, value)).start()
-
-
-    @staticmethod
-    def save_all():
-        if Settings.writeFile:
-            for x, y in zip([Files.homePath, Files.awayPath, Files.homeScorePath, Files.awayScorePath,
-                         Files.timePath, Files.overTimePath, Files.periodPath, Files.halfTimePath],
-                        [ScoreBoard.homeTeam, ScoreBoard.awayTeam, ScoreBoard.homeScore, ScoreBoard.awayScore,
-                         ScoreBoard.timerString, ScoreBoard.overTimeString, ScoreBoard.period,
-                         ScoreBoard.halfTimeString]):
-                f = open(x, "w")
-                f.write(str(y))
-                f.close()
-        if Settings.writeXml:
-            Files.write_xml()
-
-    @staticmethod
-    def write_xml():
-        ScoreBoard.nr = + 1
-        file = QFile(Files.xmlPath)
-        file.open(QIODevice.WriteOnly)
-        xml = QXmlStreamWriter(file)
-        xml.setAutoFormatting(True)
-        xml.writeStartDocument()
-        xml.writeStartElement("items")
-        xml.writeTextElement("timestamp", str(ScoreBoard.nr))
-        xml.writeTextElement("HomeScore", str(ScoreBoard.homeScore))
-        xml.writeTextElement("AwayScore", str(ScoreBoard.awayScore))
-        xml.writeTextElement("HomeName", ScoreBoard.homeTeam)
-        xml.writeTextElement("AwayName", ScoreBoard.awayTeam)
-        xml.writeTextElement("Period", str(ScoreBoard.period))
-        xml.writeTextElement("Clock", ScoreBoard.timerString)
-        xml.writeTextElement("OverTimeClock", ScoreBoard.overTimeString)
-        xml.writeTextElement("HlafTimeClock", ScoreBoard.halfTimeString)
-        xml.writeEndElement()
-        xml.writeEndDocument()
-        file.close()
+    # @staticmethod
+    # def save(filepath, value):
+    #     if Settings.writeFile:
+    #         file = open(filepath, "w")
+    #         file.write(value)
+    #         file.close()
+    #     if Settings.writeXml:
+    #         Files.write_xml()
+    #     if Obs.connected:
+    #         try:
+    #             if filepath == Files.homePath:
+    #                 window.obs.call(requests.SetSourceSettings(Obs.homeSource, {'text': value}))
+    #             elif filepath == Files.awayPath:
+    #                 window.obs.call(requests.SetSourceSettings(Obs.awaySource, {'text': value}))
+    #             elif filepath == Files.homeScorePath:
+    #                 window.obs.call(requests.SetSourceSettings(Obs.homeScoreSource, {'text': value}))
+    #             elif filepath == Files.awayScorePath:
+    #                 window.obs.call(requests.SetSourceSettings(Obs.awayScoreSource, {'text': value}))
+    #             elif filepath == Files.periodPath:
+    #                 window.obs.call(requests.SetSourceSettings(Obs.periodSource, {'text': value}))
+    #             elif filepath == Files.timePath:
+    #                 threading.Thread(target=window.set_time_obs, args=(Obs.clockSource, value)).start()
+    #                 #myThread = setObsTextThread(Obs.clockSource, value)
+    #                 #myThread.errorSignal.connect(window.obs_connection_lost)
+    #                 #print("About to start")
+    #                 #myThread.start()
+    #             elif filepath == Files.overTimePath:
+    #                 threading.Thread(target=window.set_time_obs, args=(Obs.overTimeSource, value)).start()
+    #             elif filepath == Files.halfTimePath:
+    #                 threading.Thread(target=window.set_time_obs, args=(Obs.halfTimeSource, value)).start()
+    #         except:
+    #             window.error_box("OBS connection", "Connection to OBS has been lost!")
+    #             Obs.connected = False
+    #             window.ui.ConnectObs_Label.setText("Not Connected")
+    #
+    # @staticmethod
+    # def save_all():
+    #     if Settings.writeFile:
+    #         for x, y in zip([Files.homePath, Files.awayPath, Files.homeScorePath, Files.awayScorePath,
+    #                          Files.timePath, Files.overTimePath, Files.periodPath, Files.halfTimePath],
+    #                         [ScoreBoard.homeTeam, ScoreBoard.awayTeam, ScoreBoard.homeScore, ScoreBoard.awayScore,
+    #                          ScoreBoard.timerString, ScoreBoard.overTimeString, ScoreBoard.period,
+    #                          ScoreBoard.halfTimeString]):
+    #             f = open(x, "w")
+    #             f.write(str(y))
+    #             f.close()
+    #     if Settings.writeXml:
+    #         Files.write_xml()
+    #
+    # @staticmethod
+    # def write_xml():
+    #     ScoreBoard.nr = + 1
+    #     file = QFile(Files.xmlPath)
+    #     file.open(QIODevice.WriteOnly)
+    #     xml = QXmlStreamWriter(file)
+    #     xml.setAutoFormatting(True)
+    #     xml.writeStartDocument()
+    #     xml.writeStartElement("items")
+    #     xml.writeTextElement("timestamp", str(ScoreBoard.nr))
+    #     xml.writeTextElement("HomeScore", str(ScoreBoard.homeScore))
+    #     xml.writeTextElement("AwayScore", str(ScoreBoard.awayScore))
+    #     xml.writeTextElement("HomeName", ScoreBoard.homeTeam)
+    #     xml.writeTextElement("AwayName", ScoreBoard.awayTeam)
+    #     xml.writeTextElement("Period", str(ScoreBoard.period))
+    #     xml.writeTextElement("Clock", ScoreBoard.timerString)
+    #     xml.writeTextElement("OverTimeClock", ScoreBoard.overTimeString)
+    #     xml.writeTextElement("HlafTimeClock", ScoreBoard.halfTimeString)
+    #     xml.writeEndElement()
+    #     xml.writeEndDocument()
+    #     file.close()
 
 
 def get_sec_from_time():
@@ -237,6 +262,11 @@ def get_sec_from_current_period():
 class MainWindow(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
+        self.error = QtWidgets.QCheckBox(self)
+        self.error.setChecked(False)
+        self.error.setHidden(True)
+        #self.sig = Signal(str)
+        #self.myThread = None
         self.obs = obsws()
         self.timer = QTimer(self)
         self.translator = QTranslator()
@@ -327,9 +357,84 @@ class MainWindow(QMainWindow):
         self.ui.AwayGraphicSource_comboBox.currentIndexChanged[str].connect(self.obs_away_graphics_source_set)
         self.ui.HomeGraphicFile_toolButton.clicked.connect(self.on_home_graphics_browse)
         self.ui.AwayGraphicFile_toolButton.clicked.connect(self.on_away_graphics_browse)
+        self.error.stateChanged.connect(self.obs_connection_lost)
+        self.ui.LoadObs_Button.clicked.connect(self.on_load_obs)
+        self.ui.SaveObs_Button.clicked.connect(self.on_save_obs)
 
+        self.save_all()
 
-        Files.save_all()
+    # --------------------------------- S A V E ------------------------------------
+
+    def save(self, filepath, value):
+        if Settings.writeFile:
+            file = open(filepath, "w")
+            file.write(value)
+            file.close()
+        if Settings.writeXml:
+            self.write_xml()
+        if Obs.connected:
+            try:
+                if filepath == Files.homePath:
+                    self.obs.call(requests.SetSourceSettings(Obs.homeSource, {'text': value}))
+                elif filepath == Files.awayPath:
+                    self.obs.call(requests.SetSourceSettings(Obs.awaySource, {'text': value}))
+                elif filepath == Files.homeScorePath:
+                    self.obs.call(requests.SetSourceSettings(Obs.homeScoreSource, {'text': value}))
+                elif filepath == Files.awayScorePath:
+                    self.obs.call(requests.SetSourceSettings(Obs.awayScoreSource, {'text': value}))
+                elif filepath == Files.periodPath:
+                    self.obs.call(requests.SetSourceSettings(Obs.periodSource, {'text': value}))
+                elif filepath == Files.timePath:
+                    threading.Thread(target=self.set_time_obs, args=(Obs.clockSource, value)).start()
+
+                    #print("Startthread")
+                    #setObsTextThread(Obs.clockSource, value).start()
+                    #print("Stopthread")
+                    #self.myThread.errorSignal.connect(window.obs_connection_lost)
+                    #print("About to start")
+                    #self.myThread.start()
+                elif filepath == Files.overTimePath:
+                    threading.Thread(target=self.set_time_obs, args=(Obs.overTimeSource, value)).start()
+                elif filepath == Files.halfTimePath:
+                    threading.Thread(target=self.set_time_obs, args=(Obs.halfTimeSource, value)).start()
+            except:
+                window.error_box("OBS connection", "Connection to OBS has been lost!")
+                Obs.connected = False
+                window.ui.ConnectObs_Label.setText("Not Connected")
+
+    def save_all(self):
+        if Settings.writeFile:
+            for x, y in zip([Files.homePath, Files.awayPath, Files.homeScorePath, Files.awayScorePath,
+                             Files.timePath, Files.overTimePath, Files.periodPath, Files.halfTimePath],
+                            [ScoreBoard.homeTeam, ScoreBoard.awayTeam, ScoreBoard.homeScore, ScoreBoard.awayScore,
+                             ScoreBoard.timerString, ScoreBoard.overTimeString, ScoreBoard.period,
+                             ScoreBoard.halfTimeString]):
+                f = open(x, "w")
+                f.write(str(y))
+                f.close()
+        if Settings.writeXml:
+            Files.write_xml()
+
+    def write_xml(self):
+        ScoreBoard.nr = + 1
+        file = QFile(Files.xmlPath)
+        file.open(QIODevice.WriteOnly)
+        xml = QXmlStreamWriter(file)
+        xml.setAutoFormatting(True)
+        xml.writeStartDocument()
+        xml.writeStartElement("items")
+        xml.writeTextElement("timestamp", str(ScoreBoard.nr))
+        xml.writeTextElement("HomeScore", str(ScoreBoard.homeScore))
+        xml.writeTextElement("AwayScore", str(ScoreBoard.awayScore))
+        xml.writeTextElement("HomeName", ScoreBoard.homeTeam)
+        xml.writeTextElement("AwayName", ScoreBoard.awayTeam)
+        xml.writeTextElement("Period", str(ScoreBoard.period))
+        xml.writeTextElement("Clock", ScoreBoard.timerString)
+        xml.writeTextElement("OverTimeClock", ScoreBoard.overTimeString)
+        xml.writeTextElement("HlafTimeClock", ScoreBoard.halfTimeString)
+        xml.writeEndElement()
+        xml.writeEndDocument()
+        file.close()
 
     # ------------------------------- T I M E R ------------------------------------
 
@@ -401,7 +506,7 @@ class MainWindow(QMainWindow):
                     ScoreBoard.minutes += 1
                     ScoreBoard.seconds = 0
                 self.set_halftime()
-        else:  
+        else:
             if ScoreBoard.first:
                 ScoreBoard.Tenth = ScoreBoard.totalTenth % 10
                 ScoreBoard.seconds = ScoreBoard.totalTenth // 10
@@ -507,7 +612,7 @@ class MainWindow(QMainWindow):
         self.ui.Clock_Label.setText(ScoreBoard.timerString)
         if Settings.stopWatch:
             self.set_period_time()
-        Files.save(Files.timePath, ScoreBoard.timerString)
+        self.save(Files.timePath, ScoreBoard.timerString)
         if ScoreBoard.toCheck and ScoreBoard.timerRunning and ScoreBoard.totalTimeSec == ScoreBoard.totalToSec:
             self.ui.Start_Button.clicked.emit()
             return
@@ -518,7 +623,7 @@ class MainWindow(QMainWindow):
     def set_halftime(self):
         ScoreBoard.halfTimeString = "{:02d}:{:02d}".format(ScoreBoard.minutes, ScoreBoard.seconds)
         self.ui.HalfTimeClock_Label.setText(ScoreBoard.halfTimeString)
-        Files.save(Files.halfTimePath,ScoreBoard.halfTimeString)
+        self.save(Files.halfTimePath, ScoreBoard.halfTimeString)
 
     def set_timer_time(self):
         ScoreBoard.timerString = "{:02d}:{:02d}".format(ScoreBoard.minutes, ScoreBoard.seconds)
@@ -529,8 +634,7 @@ class MainWindow(QMainWindow):
         self.ui.Minutes_Input.valueChanged[int].connect(self.on_time_input)
         self.ui.Seconds_Input.valueChanged[int].connect(self.on_time_input)
         self.ui.Clock_Label.setText(ScoreBoard.timerString)
-        Files.save(Files.timePath, ScoreBoard.timerString)
-
+        self.save(Files.timePath, ScoreBoard.timerString)
 
     def set_tenth_time(self):
         ScoreBoard.timerString = "{:02d}.{:01d}".format(ScoreBoard.seconds, ScoreBoard.tenth)
@@ -546,17 +650,17 @@ class MainWindow(QMainWindow):
             # perseconds = get_sec_from_current_period()
             # ScoreBoard.periodTimeString = "{:02d}:{:02d}".format(0, perseconds)
             # self.ui.PeriodClock_Label.setText(ScoreBoard.periodTimeString)
-        Files.save(Files.timePath, ScoreBoard.timerString)
+        self.save(Files.timePath, ScoreBoard.timerString)
 
     def set_overtime(self):
         ScoreBoard.overTimeString = "{:02d}:{:02d}".format(ScoreBoard.overtimeMinutes, ScoreBoard.overtimeSeconds)
         self.ui.OverTimeClock_Label.setText(ScoreBoard.overTimeString)
-        Files.save(Files.overTimePath, ScoreBoard.overTimeString)
+        self.save(Files.overTimePath, ScoreBoard.overTimeString)
 
     def set_current_time(self):
         ScoreBoard.timerString = datetime.now().strftime("%H:%M:%S")
         self.ui.Clock_Label.setText(ScoreBoard.timerString)
-        Files.save(Files.timePath, ScoreBoard.timerString)
+        self.save(Files.timePath, ScoreBoard.timerString)
 
     # ------------------------- H O M E ----------------------------------------------
 
@@ -567,17 +671,17 @@ class MainWindow(QMainWindow):
         if ScoreBoard.homeScore > 0:
             ScoreBoard.homeScore -= 1
             self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-            Files.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+            self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
 
     def on_home_up(self):
         ScoreBoard.homeScore += 1
         self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        Files.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
 
     def on_home_up2(self):
         ScoreBoard.homeScore += 2
         self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        Files.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
 
     # ------------------------- A W A Y -----------------------------------------
 
@@ -588,17 +692,17 @@ class MainWindow(QMainWindow):
         if ScoreBoard.awayScore > 0:
             ScoreBoard.awayScore -= 1
             self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-            Files.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+            self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
 
     def on_away_up(self):
         ScoreBoard.awayScore += 1
         self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-        Files.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
 
     def on_away_up2(self):
         ScoreBoard.awayScore += 2
         self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-        Files.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
 
     # ------------------------- P E R I O D -------------------------------------
 
@@ -647,7 +751,7 @@ class MainWindow(QMainWindow):
                     ScoreBoard.period -= 1
             self.ui.Period_Label.setText(str(ScoreBoard.period))
             if Settings.timer or Settings.currentTime:
-                Files.save(Files.periodPath, str(ScoreBoard.period))
+                self.save(Files.periodPath, str(ScoreBoard.period))
                 return
             ScoreBoard.totalSetPeriodSec = get_sec_from_period()
             ScoreBoard.startPeriodsec = get_sec_from_start_period()
@@ -688,8 +792,8 @@ class MainWindow(QMainWindow):
     # -------------------------- B U T T O N S ------------------------------------
 
     def on_update_team(self):
-        Files.save(Files.homePath, ScoreBoard.homeTeam)
-        Files.save(Files.awayPath, ScoreBoard.awayTeam)
+        self.save(Files.homePath, ScoreBoard.homeTeam)
+        self.save(Files.awayPath, ScoreBoard.awayTeam)
 
     def on_reset_timer(self, period=1):
         if not period:
@@ -700,10 +804,10 @@ class MainWindow(QMainWindow):
         ScoreBoard.startPeriodsec = get_sec_from_start_period()
         ScoreBoard.stopPeriodsec = get_sec_from_end_period()
         if Settings.stopWatch or Settings.currentTime:
-            ScoreBoard.minutes = 0
-            ScoreBoard.seconds = 0
-            ScoreBoard.setMinutes = 0
-            ScoreBoard.setSeconds = 0
+            ScoreBoard.minutes = ScoreBoard.startPeriodsec // 60
+            ScoreBoard.seconds = ScoreBoard.startPeriodsec % 60
+            ScoreBoard.setMinutes = ScoreBoard.minutes
+            ScoreBoard.setSeconds = ScoreBoard.seconds
         elif Settings.timer:
             if Settings.timerPresetEnable:
                 self.ui.MinutesPeriod_Input.setValue(Settings.timerPresetValue)
@@ -727,8 +831,8 @@ class MainWindow(QMainWindow):
         ScoreBoard.homeScore = 0
         self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
         self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        Files.save(Files.awayScorePath, str(ScoreBoard.awayScore))
-        Files.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
 
     def on_swap_button(self):
         temp = ScoreBoard.homeTeam
@@ -742,8 +846,8 @@ class MainWindow(QMainWindow):
         self.ui.HomeName_Input.setText(ScoreBoard.homeTeam)
         self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
         self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        Files.save(Files.awayScorePath, str(ScoreBoard.awayScore))
-        Files.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
 
     def on_half_time(self):
         if ScoreBoard.timerRunning:
@@ -769,8 +873,9 @@ class MainWindow(QMainWindow):
                 except:
                     pass
             self.ui.HalfTimeClock_Label.setText("00:00")
-            Files.save(Files.halfTimePath,"00:00")
+            self.save(Files.halfTimePath, "00:00")
             self.ui.HalfTime_Button.setText("Połowa")
+            self.on_reset_timer(ScoreBoard.period)
 
     # ------------------------ S E T T I N G S ------------------------------------
 
@@ -930,9 +1035,14 @@ class MainWindow(QMainWindow):
         Play.playEnabled = enable
 
     def on_play_browse(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Sound","", "Sound Files (*.wav *.mp3)");
+        filename = QFileDialog.getOpenFileName(self, "Open Sound", "", "Sound Files (*.wav *.mp3)")
+
         path = os.path.abspath(filename[0])
-        print(filename, path)
+        if os.path.isdir(path):
+            path = ""
+        print("filename = ", filename)
+        print("path = ", path)
+        print("filename[0] = ", filename[0])
         Play.playPath = path
         self.ui.BrowseFile_Input.setText(path)
 
@@ -950,7 +1060,7 @@ class MainWindow(QMainWindow):
             print("wychodze")
             return
         print("zaczynam")
-        #file = 'over.mp3'
+        # file = 'over.mp3'
         media = QUrl.fromLocalFile(Play.playPath)
         content = QMediaContent(media)
         Play.player.setMedia(content)
@@ -1055,36 +1165,47 @@ class MainWindow(QMainWindow):
         self.ui.InGameScene_comboBox.clear()
         self.ui.HalfTimeScene_comboBox.clear()
         self.ui.ClockSource_comboBox.clear()
-        self.ui.ConnectObs_Button.setText("Połącz")
-        self.ui.ConnectObs_Label.setText("Not Connected")
+        self.ui.ClockSource_comboBox.clear()
+        self.ui.OverTimeClockSource_comboBox.clear()
+        self.ui.HalfTimeClockSource_comboBox.clear()
+        self.ui.HomeSource_comboBox.clear()
+        self.ui.AwaySource_comboBox.clear()
+        self.ui.HomeScoreSource_comboBox.clear()
+        self.ui.AwayScoreSource_comboBox.clear()
+        self.ui.PeriodSource_comboBox.clear()
+        self.ui.HomeGraphicSource_comboBox.clear()
+        self.ui.AwayGraphicSource_comboBox.clear()
+        self.ui.ConnectObs_Button.setText(QCoreApplication.translate("MainWindow", "Connect"))
+        self.ui.ConnectObs_Label.setText(QCoreApplication.translate("MainWindow", "Not Connected"))
         self.ui.ConnectObs_Button.clicked.disconnect()
         self.ui.ConnectObs_Button.clicked.connect(self.on_obs_button)
 
-    def obs_clock_source_set(self,source):
+
+    def obs_clock_source_set(self, source):
         if int(self.ui.ClockSource_comboBox.currentIndex()) == 0:
             Obs.clockSource = ""
         else:
             Obs.clockSource = source
 
-    def obs_overtime_clock_source_set(self,source):
+    def obs_overtime_clock_source_set(self, source):
         if int(self.ui.OverTimeClockSource_comboBox.currentIndex()) == 0:
             Obs.overTimeSource = ""
         else:
             Obs.overTimeSource = source
 
-    def obs_halftime_clock_source_set(self,source):
+    def obs_halftime_clock_source_set(self, source):
         if int(self.ui.HalfTimeClockSource_comboBox.currentIndex()) == 0:
             Obs.halfTimeSource = ""
         else:
             Obs.halfTimeSource = source
 
-    def obs_home_source_set(self,source):
+    def obs_home_source_set(self, source):
         if int(self.ui.HomeSource_comboBox.currentIndex()) == 0:
             Obs.homeSource = ""
         else:
             Obs.homeSource = source
 
-    def obs_away_source_set(self,source):
+    def obs_away_source_set(self, source):
         if int(self.ui.AwaySource_comboBox.currentIndex()) == 0:
             Obs.awaySource = ""
         else:
@@ -1133,19 +1254,81 @@ class MainWindow(QMainWindow):
             Obs.inHalfTimeScene = scene
 
     def on_home_graphics_browse(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Image", "",  "Image Files (*.jpg *.png)")
+        filename = QFileDialog.getOpenFileName(self, "Open Image", "", "Image Files (*.jpg *.png)")
         path = os.path.abspath(filename[0])
+        if os.path.isdir(path):
+            path = ""
+            return
         Obs.homeGraphicFile = path
         self.ui.HomeGraphicFile_Input.setText(path)
 
     def on_away_graphics_browse(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Image", "",  "Image Files (*.jpg *.png)")
+        filename = QFileDialog.getOpenFileName(self, "Open Image", "", "Image Files (*.jpg *.png)")
         path = os.path.abspath(filename[0])
+        if os.path.isdir(path):
+            path = ""
+            return
         Obs.awayGraphicFile = path
         self.ui.AwayGraphicFile_Input.setText(path)
 
     def set_time_obs(self, source, time):
-        self.obs.call(requests.SetSourceSettings(source, {'text': time}))
+        try:
+            self.obs.call(requests.SetSourceSettings(source, {'text': time}))
+        except:
+            print("CheckedTrue")
+            self.error.setChecked(True)
+
+    def obs_connection_lost(self):
+        self.obs_disconnect()
+        #Obs.connected = False
+        #self.ui.ConnectObs_Label.setText("Not Connected")
+        self.error.stateChanged.disconnect()
+        self.error.setChecked(False)
+        self.error.stateChanged.connect(self.obs_connection_lost)
+        self.error_box("OBS", "OBS connection lost!")
+
+    def on_save_obs(self):
+        if not Obs.connected:
+            self.error_box("Błąd zapisu.", "Musisz być połączpny z Obs.")
+            return
+        filename = QFileDialog.getSaveFileName(self, "Save Obs Settings", os.path.abspath(__file__), "Obs Settings Files (*.obs)")
+        path = os.path.abspath(filename[0])
+        if os.path.isdir(path):
+            return
+        settings = QSettings(path, QSettings.IniFormat)
+        settings.setValue("ingamescene", Obs.inGameScene)
+        settings.setValue("halftimescene", Obs.inHalfTimeScene)
+        settings.setValue("clocksource", Obs.clockSource)
+        settings.setValue("overtimeclocksource", Obs.overTimeSource)
+        settings.setValue("halftimeclocksource", Obs.halfTimeSource)
+        settings.setValue("homesource", Obs.homeSource)
+        settings.setValue("awaysource", Obs.awaySource)
+        settings.setValue("homescoresource", Obs.homeScoreSource)
+        settings.setValue("awayscoresource", Obs.awayScoreSource)
+        settings.setValue("periodsource", Obs.periodSource)
+        settings.setValue("homegraphicsource", Obs.homeGraphicSource)
+        settings.setValue("awaygraphicsource", Obs.awayGraphicSource)
+        settings.setValue("homegraphicfile", Obs.homeGraphicFile)
+        settings.setValue("awaygraphicfile", Obs.awayGraphicFile)
+
+    def on_load_obs(self):
+        if not Obs.connected:
+            self.error_box("Błąd odczytu.", "Musisz być połączpny z Obs.")
+            return
+        filename = QFileDialog.getOpenFileName(self, "Load Obs Settings", os.path.dirname(__file__), "Obs Settings Files (*.obs)")
+        path = os.path.abspath(filename[0])
+        if os.path.isdir(path):
+            return
+        settings = QSettings(path, QSettings.IniFormat)
+        Obs.inGameScene = settings.value("ingamescene", "", str)
+        if self.ui.InGameScene_comboBox.findText(Obs.inGameScene) != -1 and Obs.inGameScene != "":
+            self.ui.InGameScene_comboBox.setCurrentText(Obs.inGameScene)
+        elif Obs.inGameScene == "":
+            self.ui.InGameScene_comboBox.setCurrentText("----------")
+        else:
+            self.error_box("Sprawdź Zbiór Scen.", "Brak żródła o nazwie " + Obs.inGameScene)
+
+        print(Obs.inGameScene)
 
 
     # -----------------------------------------------------------------------------

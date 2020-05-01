@@ -826,10 +826,24 @@ class Ui_MainWindow(object):
         self.DefHost_Label.setFont(font)
         self.DefHost_Label.setFrameShape(QFrame.StyledPanel)
         self.DefHost_Label.setFrameShadow(QFrame.Sunken)
+
+        self.SaveObs_Button = QPushButton(self.Obs)
+        self.SaveObs_Button.setObjectName(u"SaveObs_Button")
+        self.SaveObs_Button.setGeometry(QRect(500, 180, 80, 31))
+        self.SaveObs_Button.setFont(font)
+        self.SaveObs_Button.setText("Zapisz")
+
         self.ConnectObs_Button = QPushButton(self.Obs)
         self.ConnectObs_Button.setObjectName(u"ConnectObs_Button")
         self.ConnectObs_Button.setGeometry(QRect(260, 140, 181, 31))
         self.ConnectObs_Button.setFont(font)
+
+        self.LoadObs_Button = QPushButton(self.Obs)
+        self.LoadObs_Button.setObjectName(u"LoadObs_Button")
+        self.LoadObs_Button.setGeometry(QRect(600, 180, 80, 31))
+        self.LoadObs_Button.setFont(font)
+        self.LoadObs_Button.setText("Wczytaj")
+
         self.InGameScene_Label = QLabel(self.Obs)
         self.InGameScene_Label.setObjectName(u"InGameScene_Label")
         self.InGameScene_Label.setGeometry(QRect(410, 35, 161, 31))
