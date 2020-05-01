@@ -1,0 +1,15 @@
+[General]
+ingamescene=Czas i Wynik1
+halftimescene=Mecz
+clocksource=Bramka dla GOSCI-
+overtimeclocksource=
+halftimeclocksource=Bramka dla GOSCI
+homesource=Zaraz 3 kwarta
+awaysource=Bramka dla GOSPODARZY
+homescoresource=
+awayscoresource=
+periodsource=
+homegraphicsource=
+awaygraphicsource=
+homegraphicfile=
+awaygraphicfile=
