@@ -127,6 +127,7 @@ class Obs(object):
     homeGraphicFile = ""
     awayGraphicFile = ""
     send = False
+    errlist = []
 
 
 class Files(object):
@@ -399,8 +400,9 @@ class MainWindow(QMainWindow):
                     threading.Thread(target=self.set_time_obs, args=(Obs.halfTimeSource, value)).start()
             except:
                 window.error_box("OBS connection", "Connection to OBS has been lost!")
-                Obs.connected = False
-                window.ui.ConnectObs_Label.setText("Not Connected")
+                self.obs_disconnect()
+                #Obs.connected = False
+                #window.ui.ConnectObs_Label.setText("Not Connected")
 
     def save_all(self):
         if Settings.writeFile:
@@ -1291,7 +1293,7 @@ class MainWindow(QMainWindow):
         if not Obs.connected:
             self.error_box("Błąd zapisu.", "Musisz być połączpny z Obs.")
             return
-        filename = QFileDialog.getSaveFileName(self, "Save Obs Settings", os.path.abspath(__file__), "Obs Settings Files (*.obs)")
+        filename = QFileDialog.getSaveFileName(self, "Save Obs Settings", os.path.dirname(__file__), "Obs Settings Files (*.obs)")
         path = os.path.abspath(filename[0])
         if os.path.isdir(path):
             return
@@ -1320,15 +1322,50 @@ class MainWindow(QMainWindow):
         if os.path.isdir(path):
             return
         settings = QSettings(path, QSettings.IniFormat)
-        Obs.inGameScene = settings.value("ingamescene", "", str)
-        if self.ui.InGameScene_comboBox.findText(Obs.inGameScene) != -1 and Obs.inGameScene != "":
-            self.ui.InGameScene_comboBox.setCurrentText(Obs.inGameScene)
-        elif Obs.inGameScene == "":
-            self.ui.InGameScene_comboBox.setCurrentText("----------")
-        else:
-            self.error_box("Sprawdź Zbiór Scen.", "Brak żródła o nazwie " + Obs.inGameScene)
+        if Obs.errlist:
+            Obs.errlist.clear()
+        self.load_obs_to(settings, self.ui.InGameScene_comboBox, "ingamescene", Obs.inGameScene)
+        self.load_obs_to(settings, self.ui.HalfTimeScene_comboBox, "halftimescene", Obs.inHalfTimeScene)
+        self.load_obs_to(settings, self.ui.ClockSource_comboBox, "clocksource", Obs.clockSource)
+        self.load_obs_to(settings, self.ui.OverTimeClockSource_comboBox, "overtimeclocksource", Obs.overTimeSource)
+        self.load_obs_to(settings, self.ui.HalfTimeClockSource_comboBox, "halftimeclocksource", Obs.halfTimeSource)
+        self.load_obs_to(settings, self.ui.HomeSource_comboBox, "homesource", Obs.homeSource)
+        self.load_obs_to(settings, self.ui.AwaySource_comboBox, "awaysource", Obs.awaySource)
+        self.load_obs_to(settings, self.ui.HomeScoreSource_comboBox, "homescoresource", Obs.homeScoreSource)
+        self.load_obs_to(settings, self.ui.AwayScoreSource_comboBox, "awayscoresource", Obs.awayScoreSource)
+        self.load_obs_to(settings, self.ui.PeriodSource_comboBox, "periodsource", Obs.periodSource)
+        self.load_obs_to(settings, self.ui.HomeGraphicSource_comboBox, "homegraphicsource", Obs.homeGraphicSource)
+        self.load_obs_to(settings, self.ui.AwayGraphicSource_comboBox, "awaygraphicsource", Obs.awayGraphicSource)
+        self.load_obs_file_to(settings, self.ui.HomeGraphicFile_Input, "homegraphicfile", Obs.homeGraphicFile)
+        self.load_obs_file_to(settings, self.ui.AwayGraphicFile_Input, "awaygraphicfile", Obs.awayGraphicFile)
 
-        print(Obs.inGameScene)
+        if Obs.errlist:
+            self.error_box("Sprawdź Zbiór Scen.", "Brak źródeł o nazwie:\n" + self.list_errlist())
+
+
+    def load_obs_to(self, settings, widget, key, obsvar ):
+        obsvar = settings.value(key, "", str)
+        if widget.findText(obsvar) != -1 and obsvar != "":
+            widget.setCurrentText(obsvar)
+        elif obsvar == "":
+            widget.setCurrentText("----------")
+        else:
+            Obs.errlist.append(obsvar)
+            obsvar = ""
+            widget.setCurrentText("----------")
+
+    def load_obs_file_to(self, settings, widget, key, obsvar ):
+        obsvar = settings.value(key, "", str)
+        if not os.path.isfile(obsvar) and not obsvar == "":
+            Obs.errlist.append("brak pliku: " + obsvar)
+            obsvar = ""
+        widget.setText(obsvar)
+
+    def list_errlist(self):
+        text = ""
+        for error in Obs.errlist:
+            text += "- " + error + "\n"
+        return text
 
 
     # -----------------------------------------------------------------------------
