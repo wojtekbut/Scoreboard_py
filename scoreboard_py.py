@@ -417,6 +417,7 @@ class MainWindow(QMainWindow):
         if Settings.writeXml:
             Files.write_xml()
 
+
     def write_xml(self):
         ScoreBoard.nr = + 1
         file = QFile(Files.xmlPath)
