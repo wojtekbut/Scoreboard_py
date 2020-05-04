@@ -5,7 +5,7 @@ import threading
 from datetime import datetime
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtMultimedia import QMediaPlayer, QMediaContent
-from PySide2.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PySide2.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QLabel
 
 from language import Language
 from ui_mainwindow import Ui_MainWindow
@@ -19,7 +19,6 @@ from obswebsocket import obsws, requests
 class ScoreBoard(object):
     totalTenth = 0
     tenth = 0
-
     useXml = True
     nr = 0
     first = True
@@ -52,6 +51,7 @@ class ScoreBoard(object):
     toCheck = False  # if "to" checked
     timerRunning = False  # is timer running
     overtime = False  # is overtime
+
 
 
 class Settings(object):
@@ -128,6 +128,12 @@ class Obs(object):
     awayGraphicFile = ""
     send = False
     errlist = []
+
+class Dynamic(object):
+    halfOn = False
+    connectObsButtonOn = False
+    connectObsLabelOn = False
+    startServerOn = False
 
 
 class Files(object):
@@ -275,9 +281,17 @@ class MainWindow(QMainWindow):
         app.installTranslator(self.translator)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.labelStatus = QLabel(self)
+
+        self.connectObsStatus = QLabel(self)
+        self.connectObsStatus.setText(self.ui.ConnectObs_Label.text())
+        self.ui.statusbar.addWidget(self.labelStatus)
+        self.ui.statusbar.addWidget(self.connectObsStatus)
         # Language.currentTextError = Language.iniTextError
         Language.retranslateUi()
         self.ui.retranslateUi(self)
+        self.labelStatus.setText(Language.ConnectionToOBS)
+        self.connectObsStatus.setText(self.ui.ConnectObs_Label.text())
         self.ui.actionPolski.setChecked(True)
         self.start()
 
@@ -399,7 +413,7 @@ class MainWindow(QMainWindow):
                 elif filepath == Files.halfTimePath:
                     threading.Thread(target=self.set_time_obs, args=(Obs.halfTimeSource, value)).start()
             except:
-                window.error_box("OBS connection", "Connection to OBS has been lost!")
+                window.error_box(Language.ConnectionToOBS, Language.ConnectionOBSLost)
                 self.obs_disconnect()
                 #Obs.connected = False
                 #window.ui.ConnectObs_Label.setText("Not Connected")
@@ -860,7 +874,9 @@ class MainWindow(QMainWindow):
             self.on_period_up()
             ScoreBoard.minutes = 0
             ScoreBoard.seconds = 0
-            self.ui.HalfTime_Button.setText("Połowa\nAktywna")
+            Language.HalfTimeText = Language.HalfActive
+            self.ui.HalfTime_Button.setText(Language.HalfTimeText)
+            Dynamic.halfOn = True
             self.start_timer()
             if Obs.inHalfTimeScene != "":
                 try:
@@ -877,7 +893,9 @@ class MainWindow(QMainWindow):
                     pass
             self.ui.HalfTimeClock_Label.setText("00:00")
             self.save(Files.halfTimePath, "00:00")
-            self.ui.HalfTime_Button.setText("Połowa")
+            Language.HalfTimeText = Language.Half
+            self.ui.HalfTime_Button.setText(Language.HalfTimeText)
+            Dynamic.halfOn = False
             self.on_reset_timer(ScoreBoard.period)
 
     # ------------------------ S E T T I N G S ------------------------------------
@@ -1025,7 +1043,7 @@ class MainWindow(QMainWindow):
 
     def speed_help(self):
         print("message")
-        QMessageBox.about(self, "Speed Help", "Explain how the speed works.")
+        QMessageBox.about(self, Language.SpeedHelp, Language.ExplSpeedHelp)
 
     # ------------------------------ P L A Y ---------------------------------------
 
@@ -1038,7 +1056,7 @@ class MainWindow(QMainWindow):
         Play.playEnabled = enable
 
     def on_play_browse(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Sound", "", "Sound Files (*.wav *.mp3)")
+        filename = QFileDialog.getOpenFileName(self, Language.OpenSound, "", Language.SoundFiles)
 
         path = os.path.abspath(filename[0])
         if os.path.isdir(path):
@@ -1086,6 +1104,7 @@ class MainWindow(QMainWindow):
     # -------------------------- L A N G U A G E -----------------------------------
 
     def english(self):
+
         self.ui.actionPolski.setChecked(False)
         self.ui.actionEnglish.setChecked(True)
         app.removeTranslator(self.translator)
@@ -1093,6 +1112,7 @@ class MainWindow(QMainWindow):
         app.installTranslator(self.translator)
         Language.retranslateUi()
         self.ui.retranslateUi(self)
+        self.additional_translate()
 
     def polski(self):
         self.ui.actionPolski.setChecked(True)
@@ -1102,6 +1122,26 @@ class MainWindow(QMainWindow):
         app.installTranslator(self.translator)
         Language.retranslateUi()
         self.ui.retranslateUi(self)
+        self.additional_translate()
+
+    def additional_translate(self):
+        self.labelStatus.setText(Language.ConnectionToOBS)
+        self.connectObsStatus.setText(self.ui.ConnectObs_Label.text())
+        if Dynamic.halfOn:
+            self.ui.HalfTime_Button.setText(Language.HalfActive)
+        else:
+            self.ui.HalfTime_Button.setText(Language.Half)
+        if Dynamic.connectObsButtonOn:
+            self.ui.ConnectObs_Button.setText(Language.Disconnect)
+        else:
+            self.ui.ConnectObs_Button.setText(Language.Connect)
+        if Dynamic.connectObsLabelOn:
+            self.set_text(Language.Connected)
+            #self.ui.ConnectObs_Label.setText(Language.Connected)
+        else:
+            self.set_text(Language.NotConnected)
+            #self.ui.ConnectObs_Label.setText(Language.NotConnected)
+
 
     # -------------------------------- O B S ---------------------------------------
 
@@ -1110,10 +1150,11 @@ class MainWindow(QMainWindow):
 
     def set_text(self, text):
         self.ui.ConnectObs_Label.setText(text)
+        self.connectObsStatus.setText(text)
         return
 
     def on_obs_button(self):
-        self.set_text("Connecting..")
+        self.set_text(Language.Connecting)
         QTimer.singleShot(50, self.on_obs_button1)
 
     def on_obs_button1(self):
@@ -1121,8 +1162,12 @@ class MainWindow(QMainWindow):
         self.obs = obsws(Obs.host, Obs.port, Obs.password)
         try:
             self.obs.connect()
-            self.ui.ConnectObs_Button.setText("Rozłącz")
-            self.ui.ConnectObs_Label.setText("Connected")
+            self.ui.ConnectObs_Button.setText(Language.Disconnect)
+            self.set_text(Language.Connected)
+            Dynamic.connectObsButtonOn = True
+            Dynamic.connectObsLabelOn = True
+            #self.ui.ConnectObs_Label.setText("Connected")
+            #self.connectObsStatus.setText("Connected")
             Obs.connected = True
             self.ui.ConnectObs_Button.clicked.disconnect()
             self.ui.ConnectObs_Button.clicked.connect(self.obs_disconnect)
@@ -1159,8 +1204,9 @@ class MainWindow(QMainWindow):
                     self.ui.HomeGraphicSource_comboBox.addItem(source['name'])
                     self.ui.AwayGraphicSource_comboBox.addItem(source['name'])
         except:
-            self.error_box("OBS connection", "Can't connect to OBS")
-            self.ui.ConnectObs_Label.setText("Not Connected")
+            self.error_box(Language.ConnectionToOBS, Language.ObsConError)
+            self.set_text(Language.Connected)
+            #self.ui.ConnectObs_Label.setText("Not Connected")
 
     def obs_disconnect(self):
         self.obs.disconnect()
@@ -1178,8 +1224,11 @@ class MainWindow(QMainWindow):
         self.ui.PeriodSource_comboBox.clear()
         self.ui.HomeGraphicSource_comboBox.clear()
         self.ui.AwayGraphicSource_comboBox.clear()
-        self.ui.ConnectObs_Button.setText(QCoreApplication.translate("MainWindow", "Connect"))
-        self.ui.ConnectObs_Label.setText(QCoreApplication.translate("MainWindow", "Not Connected"))
+        self.ui.ConnectObs_Button.setText(Language.Connect)
+        self.set_text(Language.NotConnected)
+        Dynamic.connectObsButtonOn = False
+        Dynamic.connectObsLabelOn = False
+        #self.ui.ConnectObs_Label.setText(QCoreApplication.translate("MainWindow", "Not Connected"))
         self.ui.ConnectObs_Button.clicked.disconnect()
         self.ui.ConnectObs_Button.clicked.connect(self.on_obs_button)
 
@@ -1257,7 +1306,7 @@ class MainWindow(QMainWindow):
             Obs.inHalfTimeScene = scene
 
     def on_home_graphics_browse(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Image", "", "Image Files (*.jpg *.png)")
+        filename = QFileDialog.getOpenFileName(self, Language.OpenImage, "", Language.ImageFiles)
         path = os.path.abspath(filename[0])
         if os.path.isdir(path):
             path = ""
@@ -1266,7 +1315,7 @@ class MainWindow(QMainWindow):
         self.ui.HomeGraphicFile_Input.setText(path)
 
     def on_away_graphics_browse(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Image", "", "Image Files (*.jpg *.png)")
+        filename = QFileDialog.getOpenFileName(self, Language.OpenImage, "", Language.ImageFiles)
         path = os.path.abspath(filename[0])
         if os.path.isdir(path):
             path = ""
@@ -1288,13 +1337,13 @@ class MainWindow(QMainWindow):
         self.error.stateChanged.disconnect()
         self.error.setChecked(False)
         self.error.stateChanged.connect(self.obs_connection_lost)
-        self.error_box("OBS", "OBS connection lost!")
+        self.error_box(Language.ConnectionToOBS, Language.ConnectionOBSLost)
 
     def on_save_obs(self):
         if not Obs.connected:
-            self.error_box("Błąd zapisu.", "Musisz być połączpny z Obs.")
+            self.error_box(Language.SaveError, Language.MustConnect)
             return
-        filename = QFileDialog.getSaveFileName(self, "Save Obs Settings", os.path.dirname(__file__), "Obs Settings Files (*.obs)")
+        filename = QFileDialog.getSaveFileName(self, "Save OBS Settings", os.path.dirname(__file__), "OBS Settings Files (*.obs)")
         path = os.path.abspath(filename[0])
         if os.path.isdir(path):
             return
@@ -1318,7 +1367,7 @@ class MainWindow(QMainWindow):
         if not Obs.connected:
             self.error_box("Błąd odczytu.", "Musisz być połączpny z Obs.")
             return
-        filename = QFileDialog.getOpenFileName(self, "Load Obs Settings", os.path.dirname(__file__), "Obs Settings Files (*.obs)")
+        filename = QFileDialog.getOpenFileName(self, "Load OBS Settings", os.path.dirname(__file__), "Obs Settings Files (*.obs)")
         path = os.path.abspath(filename[0])
         if os.path.isdir(path):
             return
