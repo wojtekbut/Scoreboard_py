@@ -80,6 +80,7 @@ class Play(object):
     playPath = ""
     playVolume = 100
 
+
 # ------------------------------------ T H R E A D ---------------------------------
 
 # class setObsTextThread(QThread):
@@ -282,16 +283,20 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.labelStatus = QLabel(self)
-
         self.connectObsStatus = QLabel(self)
-        self.connectObsStatus.setText(self.ui.ConnectObs_Label.text())
-        self.ui.statusbar.addWidget(self.labelStatus)
-        self.ui.statusbar.addWidget(self.connectObsStatus)
+        self.remoteConnectStatus = QLabel(self)
+        self.remoteLabelStatus = QLabel(self)
+        self.ui.statusbar.addWidget(self.labelStatus,1)
+        self.ui.statusbar.addWidget(self.connectObsStatus,2)
+        self.ui.statusbar.addWidget(self.remoteLabelStatus,1)
+        self.ui.statusbar.addWidget(self.remoteConnectStatus,2)
         # Language.currentTextError = Language.iniTextError
         Language.retranslateUi()
         self.ui.retranslateUi(self)
         self.labelStatus.setText(Language.ConnectionToOBS)
         self.connectObsStatus.setText(self.ui.ConnectObs_Label.text())
+        self.remoteLabelStatus.setText(Language.RemoteLabelStatus)
+        self.remoteConnectStatus.setText(Language.NotConnected)
         self.ui.actionPolski.setChecked(True)
         self.start()
 
@@ -375,6 +380,10 @@ class MainWindow(QMainWindow):
         self.error.stateChanged.connect(self.obs_connection_lost)
         self.ui.LoadObs_Button.clicked.connect(self.on_load_obs)
         self.ui.SaveObs_Button.clicked.connect(self.on_save_obs)
+
+        # ----------------------------- R E M O T E  -----------------------------------
+
+        self.ui.Remote_Button.clicked.connect(self.on_remote_button)
 
         self.save_all()
 
@@ -1142,7 +1151,6 @@ class MainWindow(QMainWindow):
             self.set_text(Language.NotConnected)
             #self.ui.ConnectObs_Label.setText(Language.NotConnected)
 
-
     # -------------------------------- O B S ---------------------------------------
 
     def error_box(self, title, text):
@@ -1417,8 +1425,18 @@ class MainWindow(QMainWindow):
             text += "- " + error + "\n"
         return text
 
+    # ----------------------------- R E M O T E  -----------------------------------
 
-    # -----------------------------------------------------------------------------
+    def on_remote_button(self):
+        if self.ui.Remote_Button.text() == Language.StartServer:
+            self.ui.Remote_Button.setText(Language.StopServer)
+        else:
+            self.ui.Remote_Button.setText(Language.StartServer)
+
+
+
+
+    # ------------------------------------------------------------------------------
 
     def clear_error(self):
         Language.currentTextError = Language.iniTextError

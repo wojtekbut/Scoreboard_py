@@ -65,6 +65,10 @@ class Language(object):
         Language.CheckSceneCollection = QCoreApplication.translate("MainWindow", "Check Scene Collection!", None)
         Language.NoSources = QCoreApplication.translate("MainWindow", "No such sources name:\n", None)
         Language.NoFile = QCoreApplication.translate("MainWindow", "No such file: ", None)
+        Language.StartServer = QCoreApplication.translate("MainWindow", "Start Server", None)
+        Language.StopServer = QCoreApplication.translate("MainWindow", "Stop Server", None)
+        Language.RemoteLabelStatus = QCoreApplication.translate("MainWindow", "Remote Connection: ", None)
+        Language.Listening = QCoreApplication.translate("MainWindow", "Listening...", None)
         if Language.HalfTimeText == Language.Half:
             Language.HalfTimeText = Language.Half
             print("language = half")
