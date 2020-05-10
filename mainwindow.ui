@@ -2447,9 +2447,9 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
              <widget class="QLabel" name="Status_Label">
               <property name="geometry">
                <rect>
-                <x>70</x>
+                <x>210</x>
                 <y>280</y>
-                <width>581</width>
+                <width>441</width>
                 <height>71</height>
                </rect>
               </property>
@@ -2462,7 +2462,7 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
                <string notr="true">color: rgb(255, 0, 0);</string>
               </property>
               <property name="text">
-               <string>Status: Not Connected</string>
+               <string>Not Connected</string>
               </property>
              </widget>
              <widget class="QLabel" name="VpsInfo_Label">
@@ -2481,6 +2481,24 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
               </property>
               <property name="text">
                <string>If you want to remote over internet please portfoward or use VPS</string>
+              </property>
+             </widget>
+             <widget class="QLabel" name="StatusTxt_Label">
+              <property name="geometry">
+               <rect>
+                <x>125</x>
+                <y>280</y>
+                <width>80</width>
+                <height>71</height>
+               </rect>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>18</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Status: </string>
               </property>
              </widget>
             </widget>
@@ -3180,7 +3198,7 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
                </font>
               </property>
               <property name="text">
-               <string>Not connected</string>
+               <string>Not Connected</string>
               </property>
              </widget>
              <widget class="QComboBox" name="HomeGraphicSource_comboBox">

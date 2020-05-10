@@ -32,6 +32,12 @@ class Language(object):
     CheckSceneCollection = QCoreApplication.translate("MainWindow", "Check Scene Collection!", None)
     NoSources = QCoreApplication.translate("MainWindow", "No such sources name:\n", None)
     NoFile = QCoreApplication.translate("MainWindow", "No such file: ", None)
+    StartServer = QCoreApplication.translate("MainWindow", "Start Server", None)
+    StopServer = QCoreApplication.translate("MainWindow", "Stop Server", None)
+    RemoteLabelStatus = QCoreApplication.translate("MainWindow", "Remote Connection: ", None)
+    Listening = QCoreApplication.translate("MainWindow", "Listening...", None)
+    NrOfConnections = QCoreApplication.translate("MainWindow", "Number of Connections: ", None)
+
     HalfTimeText = Half
 
     @staticmethod
@@ -69,6 +75,8 @@ class Language(object):
         Language.StopServer = QCoreApplication.translate("MainWindow", "Stop Server", None)
         Language.RemoteLabelStatus = QCoreApplication.translate("MainWindow", "Remote Connection: ", None)
         Language.Listening = QCoreApplication.translate("MainWindow", "Listening...", None)
+        Language.NrOfConnections = QCoreApplication.translate("MainWindow", "Number of Connections: ", None)
+
         if Language.HalfTimeText == Language.Half:
             Language.HalfTimeText = Language.Half
             print("language = half")

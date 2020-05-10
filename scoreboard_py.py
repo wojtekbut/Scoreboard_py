@@ -6,14 +6,163 @@ from datetime import datetime
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtMultimedia import QMediaPlayer, QMediaContent
 from PySide2.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QLabel
-
+from PySide2.QtNetwork import QTcpServer, QTcpSocket, QHostAddress
 from language import Language
 from ui_mainwindow import Ui_MainWindow
 from char_map import CharMap
 from PySide2.QtCore import QEvent, QTimer, QSettings, QTranslator, QXmlStreamWriter, QIODevice, QFile, QCoreApplication, \
-    Qt, QUrl, Signal, QThread
+    Qt, QUrl, Signal, QThread, QByteArray, QDataStream
 from PySide2.QtGui import QFont
 from obswebsocket import obsws, requests
+
+
+class ClientThread(QThread):
+    nrOfClients = 0
+    messageReceived = Signal(QByteArray)
+    updateNrClient = Signal(int)
+    def __init__(self, sockedDescriptor, parent=None):
+        super(ClientThread, self).__init__(parent)
+        self.parent = parent
+        self.socketDescriptor = sockedDescriptor
+        self.client = None
+
+    def run(self):
+
+        self.client = QTcpSocket()
+        if self.client.setSocketDescriptor(self.socketDescriptor):
+            self.parent.parent.set_text_remote_status(Language.Connected)
+            ClientThread.nrOfClients += 1
+            print("Call to update+")
+            self.updateNrClient.emit(ClientThread.nrOfClients)
+        self.client.write(QByteArray(b"OK\r\ni to \r\n"))
+        self.client.flush()
+        self.client.connected.connect(self.myconnected)
+        self.client.disconnected.connect(self.mydisconnected)
+        self.client.readyRead.connect(self.read_message)
+        self.client.stateChanged.connect(self.change_state)
+        self.client.error.connect(self.on_error)
+        self.updateNrClient[int].connect(self.parent.parent.update_nr_clients(ClientThread.nrOfClients))
+        print("Call to update=")
+        self.updateNrClient.emit(ClientThread.nrOfClients)
+
+        print("state in run = ", self.client.state())
+        #MyServer.list.append(self)
+        print(MyServer.list)
+        self.exec_()
+        print("rozłączam")
+        #self.deleteLater()
+
+
+
+    def myconnected(self):
+        ClientThread.nrOfClients += 1
+        print("Call to update+")
+        self.updateNrClient.emit(ClientThread.nrOfClients)
+        print("myconnected ", ClientThread.nrOfClients)
+
+    def mydisconnected(self):
+        ClientThread.nrOfClients -= 1
+        print("Call to update-")
+        self.updateNrClient.emit(ClientThread.nrOfClients)
+
+        print("mydisconnected clients = ", ClientThread.nrOfClients)
+        MyServer.list.remove(self)
+        #self.updateNrClient.emit()
+        #self.updateNrClient.disconnect()
+        self.client.connected.disconnect()
+        self.client.disconnected.disconnect()
+        self.client.readyRead.disconnect()
+        self.client.stateChanged.disconnect()
+        #self.client.error.disconnect()
+        self.client = None
+        if len(MyServer.list) == 0:
+            self.parent.parent.set_text_remote_status(Language.Listening)
+        #self.client.abort()
+        #self.client.deleteLater()
+        print(MyServer.list)
+
+        #self.deleteLater()
+
+    def myabort(self):
+        self.client.disconnectFromHost()
+
+    def write_message(self, message):
+        self.client.write(message)
+        self.client.flush()
+
+    def read_message(self):
+        while self.client.canReadLine():
+            line = self.client.readLine().trimmed().data().decode("cp852")
+            print ("przysłano: ", line)
+
+    def change_state(self):
+        print("state = ", self.client.state())
+
+    def on_error(self, error):
+        print("error ", error)
+
+
+class MyServer(QTcpServer):
+    status = "Not Connected"
+    licznik = 1
+    list =[]
+    onclose = Signal()
+    onwrite = Signal(bytearray)
+
+    def __init__(self, parent):
+        super(MyServer, self).__init__(parent)
+        self.listen(QHostAddress.LocalHost, 1234)
+        self.server = None
+        self.parent = parent
+
+        MyServer.status = "Listening..."
+        self.parent.set_text_remote_status(Language.Listening)
+
+    def send(self, message):
+        self.onwrite.emit(message.encode())
+        # wiad = "Wiadomosc nr " + str(MyServer.licznik) + "\r\n"
+        # for x in MyServer.list:
+        #     x.write(wiad.encode())
+        print ("Wysłałem wiadomość: ", message)
+        MyServer.licznik += 1
+
+    def incomingConnection(self, socketDescriptor):
+        #self.server = ClientThread(socketDescriptor, self)
+        MyServer.list.append(ClientThread(socketDescriptor, self))
+        #self.server.finished.connect(self.deleteLater)
+        MyServer.list[-1].finished.connect(MyServer.list[-1].deleteLater)
+        MyServer.list[-1].start()
+        self.onclose.connect(MyServer.list[-1].myabort)
+        self.onwrite[bytearray].connect(MyServer.list[-1].write_message)
+        MyServer.list[-1].finished.connect(MyServer.list[-1].deleteLater)
+
+        #self.server.start()
+
+    def myclose(self):
+        self.close()
+        if MyServer.list:
+            self.send("Zamykam Wszystko.")
+            #QThread.sleep(5)
+            self.onclose.emit()
+            copylist = MyServer.list.copy()
+            #self.connect(self, Signal(self.onclose), MyServer[-1], myabort()),
+                         # for thread in copylist:
+                         #     print("Z listy ", copylist)
+                         #     print("zatrzymuję >> ", thread)
+                         #     thread.myabort()
+                         #print("czekam...")
+            #QThread.sleep(5)
+            for thread in copylist:
+                print("quit")
+                thread.quit()
+                print("wait")
+                thread.wait()
+                print(MyServer.list)
+        self.parent.set_text_remote_status(Language.NotConnected)
+        MyServer.list.clear()
+            #self.close()
+            #self.deleteLater()
+
 
 
 class ScoreBoard(object):
@@ -135,7 +284,7 @@ class Dynamic(object):
     connectObsButtonOn = False
     connectObsLabelOn = False
     startServerOn = False
-
+    remoteStatus = False
 
 class Files(object):
     outDir = "output"
@@ -286,10 +435,14 @@ class MainWindow(QMainWindow):
         self.connectObsStatus = QLabel(self)
         self.remoteConnectStatus = QLabel(self)
         self.remoteLabelStatus = QLabel(self)
+        self.remoteNrLabelStatus = QLabel(self)
+        self.remoteNrConnStatus = QLabel(self)
         self.ui.statusbar.addWidget(self.labelStatus,1)
         self.ui.statusbar.addWidget(self.connectObsStatus,2)
         self.ui.statusbar.addWidget(self.remoteLabelStatus,1)
         self.ui.statusbar.addWidget(self.remoteConnectStatus,2)
+        self.ui.statusbar.addWidget(self.remoteNrLabelStatus,2)
+        self.ui.statusbar.addWidget(self.remoteNrConnStatus,1)
         # Language.currentTextError = Language.iniTextError
         Language.retranslateUi()
         self.ui.retranslateUi(self)
@@ -297,6 +450,8 @@ class MainWindow(QMainWindow):
         self.connectObsStatus.setText(self.ui.ConnectObs_Label.text())
         self.remoteLabelStatus.setText(Language.RemoteLabelStatus)
         self.remoteConnectStatus.setText(Language.NotConnected)
+        self.remoteNrLabelStatus.setText(Language.NrOfConnections)
+        self.remoteNrConnStatus.setText("-")
         self.ui.actionPolski.setChecked(True)
         self.start()
 
@@ -1136,6 +1291,9 @@ class MainWindow(QMainWindow):
     def additional_translate(self):
         self.labelStatus.setText(Language.ConnectionToOBS)
         self.connectObsStatus.setText(self.ui.ConnectObs_Label.text())
+        self.remoteLabelStatus.setText(Language.RemoteLabelStatus)
+        self.remoteConnectStatus.setText(self.ui.Status_Label.text())
+        self.remoteNrLabelStatus.setText(Language.NrOfConnections)
         if Dynamic.halfOn:
             self.ui.HalfTime_Button.setText(Language.HalfActive)
         else:
@@ -1145,24 +1303,32 @@ class MainWindow(QMainWindow):
         else:
             self.ui.ConnectObs_Button.setText(Language.Connect)
         if Dynamic.connectObsLabelOn:
-            self.set_text(Language.Connected)
-            #self.ui.ConnectObs_Label.setText(Language.Connected)
+            self.set_text_obs_status(Language.Connected)
         else:
-            self.set_text(Language.NotConnected)
-            #self.ui.ConnectObs_Label.setText(Language.NotConnected)
+            self.set_text_obs_status(Language.NotConnected)
+        if Dynamic.startServerOn:
+            self.ui.Remote_Button.setText(Language.StopServer)
+        else:
+            self.ui.Remote_Button.setText(Language.StartServer)
+        if Dynamic.remoteStatus is None:
+            self.set_text_remote_status(Language.Listening)
+        elif Dynamic.remoteStatus:
+            self.set_text_remote_status(Language.Connected)
+        else:
+            self.set_text_remote_status(Language.NotConnected)
 
     # -------------------------------- O B S ---------------------------------------
 
     def error_box(self, title, text):
         QMessageBox.critical(self, title, text)
 
-    def set_text(self, text):
+    def set_text_obs_status(self, text):
         self.ui.ConnectObs_Label.setText(text)
         self.connectObsStatus.setText(text)
         return
 
     def on_obs_button(self):
-        self.set_text(Language.Connecting)
+        self.set_text_obs_status(Language.Connecting)
         QTimer.singleShot(50, self.on_obs_button1)
 
     def on_obs_button1(self):
@@ -1171,7 +1337,7 @@ class MainWindow(QMainWindow):
         try:
             self.obs.connect()
             self.ui.ConnectObs_Button.setText(Language.Disconnect)
-            self.set_text(Language.Connected)
+            self.set_text_obs_status(Language.Connected)
             Dynamic.connectObsButtonOn = True
             Dynamic.connectObsLabelOn = True
             #self.ui.ConnectObs_Label.setText("Connected")
@@ -1213,7 +1379,7 @@ class MainWindow(QMainWindow):
                     self.ui.AwayGraphicSource_comboBox.addItem(source['name'])
         except:
             self.error_box(Language.ConnectionToOBS, Language.ObsConError)
-            self.set_text(Language.Connected)
+            self.set_text_obs_status(Language.Connected)
             #self.ui.ConnectObs_Label.setText("Not Connected")
 
     def obs_disconnect(self):
@@ -1233,7 +1399,7 @@ class MainWindow(QMainWindow):
         self.ui.HomeGraphicSource_comboBox.clear()
         self.ui.AwayGraphicSource_comboBox.clear()
         self.ui.ConnectObs_Button.setText(Language.Connect)
-        self.set_text(Language.NotConnected)
+        self.set_text_obs_status(Language.NotConnected)
         Dynamic.connectObsButtonOn = False
         Dynamic.connectObsLabelOn = False
         #self.ui.ConnectObs_Label.setText(QCoreApplication.translate("MainWindow", "Not Connected"))
@@ -1430,11 +1596,32 @@ class MainWindow(QMainWindow):
     def on_remote_button(self):
         if self.ui.Remote_Button.text() == Language.StartServer:
             self.ui.Remote_Button.setText(Language.StopServer)
+            Dynamic.startServerOn = True
+            self.server = MyServer(self)
         else:
             self.ui.Remote_Button.setText(Language.StartServer)
+            Dynamic.startServerOn = False
+            self.server.myclose()
+            self.server = None
 
 
 
+    def set_text_remote_status(self, text):
+        self.ui.Status_Label.setText(text)
+        self.remoteConnectStatus.setText(text)
+        if text == Language.NotConnected:
+            Dynamic.remoteStatus = False
+            self.ui.Status_Label.setStyleSheet(u"color: rgb(255, 0, 0);")
+        elif text == Language.Listening:
+            Dynamic.remoteStatus = None
+            self.ui.Status_Label.setStyleSheet(u"color: rgb(0, 0, 255);")
+        elif text == Language.Connected:
+            Dynamic.remoteStatus = True
+            self.ui.Status_Label.setStyleSheet(u"color: rgb(0, 255, 0);")
+
+    def update_nr_clients(self, number):
+        print("Execute update.")
+        self.remoteNrConnStatus.setText(str(number))
 
     # ------------------------------------------------------------------------------
 
