@@ -11,29 +11,98 @@ from language import Language
 from ui_mainwindow import Ui_MainWindow
 from char_map import CharMap
 from PySide2.QtCore import QEvent, QTimer, QSettings, QTranslator, QXmlStreamWriter, QIODevice, QFile, QCoreApplication, \
-    Qt, QUrl, Signal, QThread, QByteArray, QDataStream
+    Qt, QUrl, Signal, QThread, QByteArray, QDataStream, QObject, Slot
 from PySide2.QtGui import QFont
 from obswebsocket import obsws, requests
+
+class Signals(QObject):
+    updateNr = Signal(QObject, int)
+    callfunc = Signal(QObject, str)
+
+class Worker(QObject):
+    nrOfClients = 0
+    doFunc = Signal(str, str)
+    messageReceived = Signal(str)
+    updateNrOfClients = Signal(int)
+    finished = Signal(QObject, QThread)
+
+    def __init__(self, socket_id):
+        super(Worker, self).__init__()
+        self.socket_id = socket_id
+
+
+    @Slot()
+    def start(self):
+        print("zaczynam start")
+        #self.doFunc.connect(MyServer.do_func)
+        print("zaczynam start 2")
+        #self.updateNrOfClients.connect(Worker.nrOfClients)
+        print("zaczynam start 3")
+        #self.messageReceived.connect(MyServer.message_received)
+        print("tworze socket")
+        self.socket = QTcpSocket()
+        if self.socket.setSocketDescriptor(self.socket_id):
+            self.doFunc.emit("MainWindow.set_text_remote_status", Language.Connected)
+            Worker.nrOfClients += 1
+            self.updateNrOfClients.emit(Worker.nrOfClients)
+            print("polaczylem")
+        else:
+            print("nie polaczylem")
+        self.socket.write(QByteArray(b"Polaczony ze scoreboard\r\n"))
+        self.socket.flush()
+
+        self.socket.disconnected.connect(self.socket.deleteLater)
+        self.socket.disconnected.connect(self.ending)
+        self.socket.readyRead.connect(self.read_message)
+
+
+        # self.exec_()
+        # self.finished.emit(self)
+
+    @Slot()
+    def ending(self):
+        Worker.nrOfClients -= 1
+        print("ending in worker")
+        self.updateNrOfClients.emit(Worker.nrOfClients)
+        print(self)
+        print(self.thread())
+        self.finished.emit(self, self.thread())
+
+
+    @Slot()
+    def read_message(self):
+        while self.socket.canReadLine():
+            line = self.socket.readLine().trimmed().data().decode("cp852")
+            self.messageReceived.emit(line)
+
+    @Slot(QByteArray)
+    def write_message(self, message):
+        self.socket.write(message)
+        self.socket.flush()
+
+
+
+
 
 
 class ClientThread(QThread):
     nrOfClients = 0
     messageReceived = Signal(QByteArray)
-    updateNrClient = Signal(int)
+    updateNrClient = Signal(QObject, int)
     def __init__(self, sockedDescriptor, parent=None):
         super(ClientThread, self).__init__(parent)
         self.parent = parent
         self.socketDescriptor = sockedDescriptor
-        self.client = None
+        #self.client = None
 
     def run(self):
-
+        self.signal = Signals()
         self.client = QTcpSocket()
         if self.client.setSocketDescriptor(self.socketDescriptor):
             self.parent.parent.set_text_remote_status(Language.Connected)
             ClientThread.nrOfClients += 1
-            print("Call to update+")
-            self.updateNrClient.emit(ClientThread.nrOfClients)
+            #print("Call to update+")
+            #self.updateNrClient.emit(ClientThread.nrOfClients)
         self.client.write(QByteArray(b"OK\r\ni to \r\n"))
         self.client.flush()
         self.client.connected.connect(self.myconnected)
@@ -41,9 +110,11 @@ class ClientThread(QThread):
         self.client.readyRead.connect(self.read_message)
         self.client.stateChanged.connect(self.change_state)
         self.client.error.connect(self.on_error)
-        self.updateNrClient[int].connect(self.parent.parent.update_nr_clients(ClientThread.nrOfClients))
+        #self.updateNrClient[int].connect(MainWindow.update_nr_clients(ClientThread.nrOfClients))
+        self.signal.updateNr.connect(MainWindow.set_text_remote_status)
         print("Call to update=")
-        self.updateNrClient.emit(ClientThread.nrOfClients)
+        #self.updateNrClient.emit(ClientThread.nrOfClients)
+        self.signal.updateNr.emit(MainWindow, ClientThread.nrOfClients)
 
         print("state in run = ", self.client.state())
         #MyServer.list.append(self)
@@ -57,13 +128,14 @@ class ClientThread(QThread):
     def myconnected(self):
         ClientThread.nrOfClients += 1
         print("Call to update+")
-        self.updateNrClient.emit(ClientThread.nrOfClients)
+        #self.updateNrClient.emit(ClientThread.nrOfClients)
         print("myconnected ", ClientThread.nrOfClients)
 
     def mydisconnected(self):
         ClientThread.nrOfClients -= 1
         print("Call to update-")
-        self.updateNrClient.emit(ClientThread.nrOfClients)
+        self.signal.updateNr.emit(MainWindow, ClientThread.nrOfClients)
+        #self.updateNrClient.emit(ClientThread.nrOfClients)
 
         print("mydisconnected clients = ", ClientThread.nrOfClients)
         MyServer.list.remove(self)
@@ -103,23 +175,45 @@ class ClientThread(QThread):
 
 
 class MyServer(QTcpServer):
+    myself = None
     status = "Not Connected"
     licznik = 1
-    list =[]
+    listWorker = []
+    listThread = []
     onclose = Signal()
     onwrite = Signal(bytearray)
 
     def __init__(self, parent):
         super(MyServer, self).__init__(parent)
+        MyServer.myself = self
         self.listen(QHostAddress.LocalHost, 1234)
         self.server = None
         self.parent = parent
-
         MyServer.status = "Listening..."
         self.parent.set_text_remote_status(Language.Listening)
 
+
+    @Slot(str)
+    def message_received(self, message):
+        print("przysłano: ", message)
+
+    def str_to_class(classname):
+        return getattr(sys.modules[__name__], classname)
+
+    @Slot(str, str)
+    def do_func(self, object, attr):
+        def splitmet(text):
+            a = text.split(".")
+            b = ".".join(a[:-1])
+            c = a[-1]
+            return b, c
+        obj, fun = splitmet(object)
+
+        print(obj, fun)
+        getattr(MyServer.str_to_class(obj), fun)(self.parent, attr)
+
     def send(self, message):
-        self.onwrite.emit(message.encode())
+        self.onwrite.emit(message.encode("cp852"))
         # wiad = "Wiadomosc nr " + str(MyServer.licznik) + "\r\n"
         # for x in MyServer.list:
         #     x.write(wiad.encode())
@@ -128,21 +222,78 @@ class MyServer(QTcpServer):
 
     def incomingConnection(self, socketDescriptor):
         #self.server = ClientThread(socketDescriptor, self)
-        MyServer.list.append(ClientThread(socketDescriptor, self))
-        #self.server.finished.connect(self.deleteLater)
-        MyServer.list[-1].finished.connect(MyServer.list[-1].deleteLater)
-        MyServer.list[-1].start()
-        self.onclose.connect(MyServer.list[-1].myabort)
-        self.onwrite[bytearray].connect(MyServer.list[-1].write_message)
-        MyServer.list[-1].finished.connect(MyServer.list[-1].deleteLater)
+        w = Worker(socketDescriptor)
+        MyServer.listWorker.append(w)
+        t = QThread()
+        MyServer.listThread.append(t)
+        w.moveToThread(t)
+        #MyServer.listWorker[-1].moveToThread(MyServer.listThread[-1])
+        #MyServer.listWorker[-1].doFunc.connect(self.do)
+        self.onwrite.connect(MyServer.listWorker[-1].write_message)
+        MyServer.listWorker[-1].doFunc.connect(self.do_func)
+        MyServer.listWorker[-1].messageReceived.connect(self.message_received)
+        MyServer.listThread[-1].started.connect(MyServer.listWorker[-1].start)
+        MyServer.listWorker[-1].updateNrOfClients.connect(self.update_nr_clients)
+        MyServer.listWorker[-1].finished.connect(self.test)
+        #MyServer.listWorker[-1].finished.connect(MyServer.listThread[-1].quit)
+        #MyServer.listWorker[-1].finished.connect(MyServer.listWorker[-1].deleteLater)
+        #MyServer.listThread[-1].finished.connect(MyServer.listThread[-1].deleteLater)
+        MyServer.listThread[-1].start()
+        print(MyServer.listWorker)
+        print(MyServer.listThread)
+        #self.onclose.connect(MyServer.list[-1].myabort)
+        #self.onwrite[bytearray].connect(MyServer.list[-1].write_message)
+        #MyServer.list[-1].finished.connect(MyServer.list[-1].deleteLater)
 
         #self.server.start()
+    @Slot(int)
+    def update_nr_clients(self, number):
+        print("update nr = ", number)
+        self.parent.update_nr_clients(number)
+
+    @Slot(QObject, QThread)
+    def end_worker(self, worker, thread):
+        print("rm worker ", worker)
+        MyServer.listWorker.remove(worker)
+        print("re thread", thread)
+        MyServer.listThread.remove(thread)
+        print("aktualne worker ", MyServer.listWorker)
+        print("aktualne thred ", MyServer.listThread)
+        if (not MyServer.listThread) and (not MyServer.listWorker):
+            self.parent.set_text_remote_status(Language.Listening)
+
+    @Slot(QObject, QThread)
+    def test(self, worker, thread):
+        print("pierwsze")
+        print(MyServer.listWorker)
+        print(MyServer.listThread)
+
+        MyServer.listWorker.remove(worker)
+        worker.deleteLater()
+        MyServer.listThread.remove(thread)
+        thread.quit()
+        thread.deleteLater()
+        QThread.sleep(1)
+        print("drugie")
+        print(MyServer.listWorker)
+        print(MyServer.listThread)
+        if (not MyServer.listThread) and (not MyServer.listWorker):
+            self.parent.set_text_remote_status(Language.Listening)
 
     def myclose(self):
         self.close()
-        if MyServer.list:
+        if MyServer.listWorker:
             self.send("Zamykam Wszystko.")
+            copylistw = MyServer.listWorker.copy()
+            copylistt = MyServer.listThread.copy()
             #QThread.sleep(5)
+            for w, t in zip(copylistw, copylistt):
+                self.test(w, t)
+                self.update_nr_clients(len(MyServer.listWorker))
+            self.parent.set_text_remote_status(Language.NotConnected)
+            Worker.nrOfClients = 0
+            self.deleteLater()
+            return
             self.onclose.emit()
             copylist = MyServer.list.copy()
             #self.connect(self, Signal(self.onclose), MyServer[-1], myabort()),
