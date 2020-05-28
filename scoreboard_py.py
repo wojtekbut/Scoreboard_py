@@ -322,7 +322,6 @@ from worker import MyServer
 class ScoreBoard(object):
     totalTenth = 0
     tenth = 0
-    useXml = True
     nr = 0
     first = True
     homeScore = 0
@@ -358,7 +357,7 @@ class ScoreBoard(object):
 
 
 class Settings(object):
-    writeFile = True
+    writeFile = False
     writeXml = False
     writeObs = False
     stopWatch = True
@@ -578,6 +577,7 @@ class MainWindow(QMainWindow):
         self.error.setHidden(True)
         #self.sig = Signal(str)
         #self.myThread = None
+        self.server = None
         self.obs = obsws()
         self.timer = QTimer(self)
         self.translator = QTranslator()
@@ -700,10 +700,12 @@ class MainWindow(QMainWindow):
 
     def save(self, filepath, value):
         if Settings.writeFile:
+            print("save in files")
             file = open(filepath, "w")
             file.write(value)
             file.close()
         if Settings.writeXml:
+            print("save in xml")
             self.write_xml()
         if Obs.connected:
             try:
@@ -728,7 +730,8 @@ class MainWindow(QMainWindow):
                 self.obs_disconnect()
                 #Obs.connected = False
                 #window.ui.ConnectObs_Label.setText("Not Connected")
-        if MyServer.status == "Connected":
+        if self.server and self.server.status == Language.Connected:
+            print("save in server")
             try:
                 if filepath == Files.homePath:
                     self.server.send("Home:"+value)
@@ -755,7 +758,9 @@ class MainWindow(QMainWindow):
 
 
     def save_all(self):
+        print("zaczynam save_all")
         if Settings.writeFile:
+            print("save_all in files")
             for x, y in zip([Files.homePath, Files.awayPath, Files.homeScorePath, Files.awayScorePath,
                              Files.timePath, Files.overTimePath, Files.periodPath, Files.halfTimePath],
                             [ScoreBoard.homeTeam, ScoreBoard.awayTeam, ScoreBoard.homeScore, ScoreBoard.awayScore,
@@ -765,8 +770,14 @@ class MainWindow(QMainWindow):
                 f.write(str(y))
                 f.close()
         if Settings.writeXml:
-            Files.write_xml()
-        if MyServer.status == "Connected":
+            print("save_all in xml")
+            self.write_xml()
+        print("server: ", self.server)
+        if self.server:
+            print("serverStatus: ", self.server.status)
+        print("Language.Connected: "+Language.Connected)
+        if self.server and self.server.status == Language.Connected:
+            print("save_all in server")
             self.server.send("Home:" + ScoreBoard.homeTeam)
             self.server.send("Away:" + ScoreBoard.awayTeam)
             self.server.send("HomeScore:" + str(ScoreBoard.homeScore))
