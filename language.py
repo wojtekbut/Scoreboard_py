@@ -37,6 +37,10 @@ class Language(object):
     RemoteLabelStatus = QCoreApplication.translate("MainWindow", "Remote Connection: ", None)
     Listening = QCoreApplication.translate("MainWindow", "Listening...", None)
     NrOfConnections = QCoreApplication.translate("MainWindow", "Number of Connections: ", None)
+    IpAddresses = QCoreApplication.translate("MainWindow","My IP addresses: ", None)
+    IpAddressesDefault = QCoreApplication.translate("MainWindow","Default IP: 127.0.0.1/Localhost | Port: 1234", None)
+
+    currentLanguage = ""
 
     HalfTimeText = Half
 
@@ -76,6 +80,8 @@ class Language(object):
         Language.RemoteLabelStatus = QCoreApplication.translate("MainWindow", "Remote Connection: ", None)
         Language.Listening = QCoreApplication.translate("MainWindow", "Listening...", None)
         Language.NrOfConnections = QCoreApplication.translate("MainWindow", "Number of Connections: ", None)
+        Language.IpAddresses = QCoreApplication.translate("MainWindow", "My IP addresses: ", None)
+        Language.IpAddressesDefault = QCoreApplication.translate("MainWindow", "Default IP: 127.0.0.1/Localhost | Port: 1234", None)
 
         if Language.HalfTimeText == Language.Half:
             Language.HalfTimeText = Language.Half

@@ -173,7 +173,7 @@ class CharMap(object):
     @staticmethod
     def get(num):
         naz = "CH"+str(num)
-        return getattr  (CharMap,naz,"ERROR! Try again!")
+        return getattr(CharMap, naz, "ERROR! Try again!")
 
 
 

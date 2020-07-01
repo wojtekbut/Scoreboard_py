@@ -6,583 +6,247 @@ from datetime import datetime
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtMultimedia import QMediaPlayer, QMediaContent
 from PySide2.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QLabel
-from PySide2.QtNetwork import QTcpServer, QTcpSocket, QHostAddress
 from language import Language
 from ui_mainwindow import Ui_MainWindow
 from char_map import CharMap
-from PySide2.QtCore import QEvent, QTimer, QSettings, QTranslator, QXmlStreamWriter, QIODevice, QFile, QCoreApplication, \
-    Qt, QUrl, Signal, QThread, QByteArray, QDataStream, QObject, Slot
+from PySide2.QtCore import QEvent, QTimer, QSettings, QTranslator, QXmlStreamWriter
+from PySide2.QtCore import QIODevice, QFile, QCoreApplication, Qt, QUrl
 from PySide2.QtGui import QFont
 from obswebsocket import obsws, requests
-
 from worker import MyServer
 
 
-# class Signals(QObject):
-#     updateNr = Signal(QObject, int)
-#     callfunc = Signal(QObject, str)
-
-# class Worker(QObject):
-#     nrOfClients = 0
-#     doFunc = Signal(str, str)
-#     messageReceived = Signal(str)
-#     updateNrOfClients = Signal(int)
-#     finished = Signal(QObject, QThread)
-#
-#     def __init__(self, socket_id):
-#         super(Worker, self).__init__()
-#         self.socket_id = socket_id
-#
-#
-#     @Slot()
-#     def start(self):
-#         print("zaczynam start")
-#         #self.doFunc.connect(MyServer.do_func)
-#         print("zaczynam start 2")
-#         #self.updateNrOfClients.connect(Worker.nrOfClients)
-#         print("zaczynam start 3")
-#         #self.messageReceived.connect(MyServer.message_received)
-#         print("tworze socket")
-#         self.socket = QTcpSocket()
-#         if self.socket.setSocketDescriptor(self.socket_id):
-#             self.doFunc.emit("MainWindow.set_text_remote_status", Language.Connected)
-#             Worker.nrOfClients += 1
-#             self.updateNrOfClients.emit(Worker.nrOfClients)
-#             print("polaczylem")
-#         else:
-#             print("nie polaczylem")
-#         self.socket.write(QByteArray(b"Polaczony ze scoreboard\r\n"))
-#         self.socket.flush()
-#
-#         self.socket.disconnected.connect(self.socket.deleteLater)
-#         self.socket.disconnected.connect(self.ending)
-#         self.socket.readyRead.connect(self.read_message)
-#
-#
-#         # self.exec_()
-#         # self.finished.emit(self)
-#
-#     @Slot()
-#     def ending(self):
-#         Worker.nrOfClients -= 1
-#         print("ending in worker")
-#         self.updateNrOfClients.emit(Worker.nrOfClients)
-#         print(self)
-#         print(self.thread())
-#         self.finished.emit(self, self.thread())
-#
-#
-#     @Slot()
-#     def read_message(self):
-#         while self.socket.canReadLine():
-#             line = self.socket.readLine().trimmed().data().decode("cp852")
-#             self.messageReceived.emit(line)
-#
-#     @Slot(QByteArray)
-#     def write_message(self, message):
-#         self.socket.write(message)
-#         self.socket.flush()
-#
-#
-#
-#
-#
-#
-# class ClientThread(QThread):
-#     nrOfClients = 0
-#     messageReceived = Signal(QByteArray)
-#     updateNrClient = Signal(QObject, int)
-#     def __init__(self, sockedDescriptor, parent=None):
-#         super(ClientThread, self).__init__(parent)
-#         self.parent = parent
-#         self.socketDescriptor = sockedDescriptor
-#         #self.client = None
-#
-#     def run(self):
-#         self.signal = Signals()
-#         self.client = QTcpSocket()
-#         if self.client.setSocketDescriptor(self.socketDescriptor):
-#             self.parent.parent.set_text_remote_status(Language.Connected)
-#             ClientThread.nrOfClients += 1
-#             #print("Call to update+")
-#             #self.updateNrClient.emit(ClientThread.nrOfClients)
-#         self.client.write(QByteArray(b"OK\r\ni to \r\n"))
-#         self.client.flush()
-#         self.client.connected.connect(self.myconnected)
-#         self.client.disconnected.connect(self.mydisconnected)
-#         self.client.readyRead.connect(self.read_message)
-#         self.client.stateChanged.connect(self.change_state)
-#         self.client.error.connect(self.on_error)
-#         #self.updateNrClient[int].connect(MainWindow.update_nr_clients(ClientThread.nrOfClients))
-#         self.signal.updateNr.connect(MainWindow.set_text_remote_status)
-#         print("Call to update=")
-#         #self.updateNrClient.emit(ClientThread.nrOfClients)
-#         self.signal.updateNr.emit(MainWindow, ClientThread.nrOfClients)
-#
-#         print("state in run = ", self.client.state())
-#         #MyServer.list.append(self)
-#         print(MyServer.list)
-#         self.exec_()
-#         print("rozłączam")
-#         #self.deleteLater()
-#
-#
-#
-#     def myconnected(self):
-#         ClientThread.nrOfClients += 1
-#         print("Call to update+")
-#         #self.updateNrClient.emit(ClientThread.nrOfClients)
-#         print("myconnected ", ClientThread.nrOfClients)
-#
-#     def mydisconnected(self):
-#         ClientThread.nrOfClients -= 1
-#         print("Call to update-")
-#         self.signal.updateNr.emit(MainWindow, ClientThread.nrOfClients)
-#         #self.updateNrClient.emit(ClientThread.nrOfClients)
-#
-#         print("mydisconnected clients = ", ClientThread.nrOfClients)
-#         MyServer.list.remove(self)
-#         #self.updateNrClient.emit()
-#         #self.updateNrClient.disconnect()
-#         self.client.connected.disconnect()
-#         self.client.disconnected.disconnect()
-#         self.client.readyRead.disconnect()
-#         self.client.stateChanged.disconnect()
-#         #self.client.error.disconnect()
-#         self.client = None
-#         if len(MyServer.list) == 0:
-#             self.parent.parent.set_text_remote_status(Language.Listening)
-#         #self.client.abort()
-#         #self.client.deleteLater()
-#         print(MyServer.list)
-#
-#         #self.deleteLater()
-#
-#     def myabort(self):
-#         self.client.disconnectFromHost()
-#
-#     def write_message(self, message):
-#         self.client.write(message)
-#         self.client.flush()
-#
-#     def read_message(self):
-#         while self.client.canReadLine():
-#             line = self.client.readLine().trimmed().data().decode("cp852")
-#             print ("przysłano: ", line)
-#
-#     def change_state(self):
-#         print("state = ", self.client.state())
-#
-#     def on_error(self, error):
-#         print("error ", error)
-#
-#
-# class MyServer(QTcpServer):
-#     myself = None
-#     status = "Not Connected"
-#     licznik = 1
-#     listWorker = []
-#     listThread = []
-#     onclose = Signal()
-#     onwrite = Signal(bytearray)
-#
-#     def __init__(self, parent):
-#         super(MyServer, self).__init__(parent)
-#         MyServer.myself = self
-#         self.listen(QHostAddress.LocalHost, 1234)
-#         self.server = None
-#         self.parent = parent
-#         MyServer.status = "Listening..."
-#         self.parent.set_text_remote_status(Language.Listening)
-#
-#
-#     @Slot(str)
-#     def message_received(self, message):
-#         print("przysłano: ", message)
-#
-#     def str_to_class(classname):
-#         return getattr(sys.modules[__name__], classname)
-#
-#     @Slot(str, str)
-#     def do_func(self, object, attr):
-#         def splitmet(text):
-#             a = text.split(".")
-#             b = ".".join(a[:-1])
-#             c = a[-1]
-#             return b, c
-#         obj, fun = splitmet(object)
-#
-#         print(obj, fun)
-#         getattr(MyServer.str_to_class(obj), fun)(self.parent, attr)
-#
-#     def send(self, message):
-#         self.onwrite.emit(message.encode("cp852"))
-#         # wiad = "Wiadomosc nr " + str(MyServer.licznik) + "\r\n"
-#         # for x in MyServer.list:
-#         #     x.write(wiad.encode())
-#         print ("Wysłałem wiadomość: ", message)
-#         MyServer.licznik += 1
-#
-#     def incomingConnection(self, socketDescriptor):
-#         #self.server = ClientThread(socketDescriptor, self)
-#         w = Worker(socketDescriptor)
-#         MyServer.listWorker.append(w)
-#         t = QThread()
-#         MyServer.listThread.append(t)
-#         w.moveToThread(t)
-#         #MyServer.listWorker[-1].moveToThread(MyServer.listThread[-1])
-#         #MyServer.listWorker[-1].doFunc.connect(self.do)
-#         self.onwrite.connect(MyServer.listWorker[-1].write_message)
-#         MyServer.listWorker[-1].doFunc.connect(self.do_func)
-#         MyServer.listWorker[-1].messageReceived.connect(self.message_received)
-#         MyServer.listThread[-1].started.connect(MyServer.listWorker[-1].start)
-#         MyServer.listWorker[-1].updateNrOfClients.connect(self.update_nr_clients)
-#         MyServer.listWorker[-1].finished.connect(self.test)
-#         #MyServer.listWorker[-1].finished.connect(MyServer.listThread[-1].quit)
-#         #MyServer.listWorker[-1].finished.connect(MyServer.listWorker[-1].deleteLater)
-#         #MyServer.listThread[-1].finished.connect(MyServer.listThread[-1].deleteLater)
-#         MyServer.listThread[-1].start()
-#         print(MyServer.listWorker)
-#         print(MyServer.listThread)
-#         #self.onclose.connect(MyServer.list[-1].myabort)
-#         #self.onwrite[bytearray].connect(MyServer.list[-1].write_message)
-#         #MyServer.list[-1].finished.connect(MyServer.list[-1].deleteLater)
-#
-#         #self.server.start()
-#     @Slot(int)
-#     def update_nr_clients(self, number):
-#         print("update nr = ", number)
-#         self.parent.update_nr_clients(number)
-#
-#     @Slot(QObject, QThread)
-#     def end_worker(self, worker, thread):
-#         print("rm worker ", worker)
-#         MyServer.listWorker.remove(worker)
-#         print("re thread", thread)
-#         MyServer.listThread.remove(thread)
-#         print("aktualne worker ", MyServer.listWorker)
-#         print("aktualne thred ", MyServer.listThread)
-#         if (not MyServer.listThread) and (not MyServer.listWorker):
-#             self.parent.set_text_remote_status(Language.Listening)
-#
-#     @Slot(QObject, QThread)
-#     def test(self, worker, thread):
-#         print("pierwsze")
-#         print(MyServer.listWorker)
-#         print(MyServer.listThread)
-#
-#         MyServer.listWorker.remove(worker)
-#         worker.deleteLater()
-#         MyServer.listThread.remove(thread)
-#         thread.quit()
-#         thread.deleteLater()
-#         QThread.sleep(1)
-#         print("drugie")
-#         print(MyServer.listWorker)
-#         print(MyServer.listThread)
-#         if (not MyServer.listThread) and (not MyServer.listWorker):
-#             self.parent.set_text_remote_status(Language.Listening)
-#
-#     def myclose(self):
-#         self.close()
-#         if MyServer.listWorker:
-#             self.send("Zamykam Wszystko.")
-#             copylistw = MyServer.listWorker.copy()
-#             copylistt = MyServer.listThread.copy()
-#             #QThread.sleep(5)
-#             for w, t in zip(copylistw, copylistt):
-#                 self.test(w, t)
-#                 self.update_nr_clients(len(MyServer.listWorker))
-#             self.parent.set_text_remote_status(Language.NotConnected)
-#             Worker.nrOfClients = 0
-#             self.deleteLater()
-#             return
-#             self.onclose.emit()
-#             copylist = MyServer.list.copy()
-#             #self.connect(self, Signal(self.onclose), MyServer[-1], myabort()),
-#                          # for thread in copylist:
-#                          #     print("Z listy ", copylist)
-#                          #     print("zatrzymuję >> ", thread)
-#                          #     thread.myabort()
-#                          #print("czekam...")
-#             #QThread.sleep(5)
-#             for thread in copylist:
-#                 print("quit")
-#                 thread.quit()
-#                 print("wait")
-#                 thread.wait()
-#                 print(MyServer.list)
-#         self.parent.set_text_remote_status(Language.NotConnected)
-#         MyServer.list.clear()
-#             #self.close()
-#             #self.deleteLater()
-#
-#
-
 class ScoreBoard(object):
-    totalTenth = 0
-    tenth = 0
-    nr = 0
-    first = True
-    homeScore = 0
-    homeTeam = ""
-    awayScore = 0
-    awayTeam = ""
-    period = 1
-    totalTimeSec = 0  # total timer seconds
-    totalSetTimeSec = 0  # total seconds in set timer input
-    totalToSec = 0  # total seconds in to timer input
-    totalCurrentPeriodSec = 0  # total current period seconds
-    startPeriodsec = 0  # total second of start current period
-    stopPeriodsec = 0  # total seconds of end current period
-    totalSetPeriodSec = 0  # total seconds of period input
-    timerString = "00:00"  # timer clock string
-    overTimeString = "00:00"  # overtime clock string
-    periodTimeString = "00:00"  # period clock string
-    halfTimeString = "00:00"  # halftime clock string
-    minutes = 0  # timer minutes
-    seconds = 0  # timer seconds
-    setMinutes = 0  # minutes of set timer input
-    setSeconds = 0  # seconds of set timer input
-    setToMinutes = 0  # minutes of set "to" timer input
-    setToSeconds = 0  # seconds of set "to" timer input
-    setPeriodMinutes = 0  # minutes of set period input
-    setPeriodSeconds = 0  # second of set period input
-    overtimeMinutes = 0  # overtime minutes
-    overtimeSeconds = 0  # overtime seconds
-    toCheck = False  # if "to" checked
-    timerRunning = False  # is timer running
-    overtime = False  # is overtime
 
+    scoreBoardDict = {'totalTenth': 0,
+                      'tenth': 0,
+                      'nr': 0,
+                      'first': True,
+                      'homeScore': 0,
+                      'homeTeam': "",
+                      'awayScore': 0,
+                      'awayTeam': "",
+                      'period': 1,
+                      'totalTimeSec': 0,
+                      'totalSetTimeSec': 0,
+                      'totalToSec': 0,
+                      'totalCurrentPeriodSec': 0,
+                      'startPeriodsec': 0,
+                      'stopPeriodsec': 0,
+                      'totalSetPeriodSec': 0,
+                      'timerString': "00:00",
+                      'overTimeString': "00:00",
+                      'periodTimeString': "00:00",
+                      'halfTimeString': "00:00",
+                      'minutes': 0,
+                      'seconds': 0,
+                      'setMinutes': 0,
+                      'setSeconds': 0,
+                      'setToMinutes': 0,
+                      'setToSeconds': 0,
+                      'setPeriodMinutes': 0,
+                      'setPeriodSeconds': 0,
+                      'overtimeMinutes': 0,
+                      'overtimeSeconds': 0,
+                      'toCheck': False,
+                      'timerRunning': False,
+                      'overtime': False
+                      }
+    
 
 
 class Settings(object):
-    writeFile = False
-    writeXml = False
-    writeObs = False
-    stopWatch = True
-    timer = False
-    currentTime = False
-    tenth = False
-    halfTime = False
-    prehalf = None
-    defaultSpeed = 1000
-    defaultTenthSpeed = 94
-    speed = defaultSpeed
-    tenthSpeed = defaultTenthSpeed
-    timerPresetEnable = False
-    timerPresetValue = None
-    customSpeed = False
-    customTenthSpeed = False
+
+    settingsDict = {
+        'writeFile': False,
+        'writeXml': False,
+        'writeObs': False,
+        'stopWatch': True,
+        'timer': False,
+        'currentTime': False,
+        'tenth': False,
+        'halfTime': False,
+        'defaultSpeed': 1000,
+        'defaultTenthSpeed': 94,
+        'speed': 1000,
+        'tenthSpeed': 94,
+        'timerPresetEnable': False,
+        'timerPresetValue': 10,
+        'customSpeed': False,
+        'customTenthSpeed': False,
+        'loadSettings': False,
+        'saveData': False,
+        'alwaysOnTop': False
+    }
 
 
 class Play(object):
-    player = QMediaPlayer(None)
-    playEnabled = False
-    playPath = ""
-    playVolume = 100
 
-
-# ------------------------------------ T H R E A D ---------------------------------
-
-# class setObsTextThread(QThread):
-#
-#     errorSignal = Signal(str)
-#
-#     def __init__(self, source, text):
-#         QThread.__init__(self)
-#
-#         self.source = source
-#         self.text = text
-#         #print("Create thread")
-#
-#     def run(self):
-#         self.errorSignal.connect(window.obs_connection_lost)
-#         #print("Starting Thread")
-#         try:
-#             #print("thread try block")
-#             window.obs.call(requests.SetSourceSettings(self.source, {'text': self.text}))
-#         except:
-#             self.errorSignal.emit("error")
-
-# ----------------------------------------------------------------------------------
-
-
+    playDict = {
+        'player': QMediaPlayer(),
+        'playEnabled': False,
+        'playPath': "",
+        'playVolume': 50
+    }
 
 
 class Obs(object):
-    connected = False
-    host = "localhost"
-    port = 4444
-    password = ""
-    inGameScene = ""
-    inHalfTimeScene = ""
-    clockSource = ""
-    overTimeSource = ""
-    halfTimeSource = ""
-    homeSource = ""
-    awaySource = ""
-    homeGraphicSource = ""
-    awayGraphicSource = ""
-    homeScoreSource = ""
-    periodSource = ""
-    awayScoreSource = ""
-    homeGraphicFile = ""
-    awayGraphicFile = ""
-    send = False
-    errlist = []
+
+    obsDict = {
+        'connected': False,
+        'host': "localhost",
+        'port': 4444,
+        'password': "",
+        'inGameScene': "",
+        'inHalfTimeScene': "",
+        'clockSource': "",
+        'overTimeSource': "",
+        'halfTimeSource': "",
+        'homeSource': "",
+        'awaySource': "",
+        'homeGraphicSource': "",
+        'awayGraphicSource': "",
+        'homeScoreSource': "",
+        'periodSource': "",
+        'awayScoreSource': "",
+        'homeGraphicFile': "",
+        'awayGraphicFile': "",
+        'send': False,
+        'errlist': []
+    }
+
 
 class Dynamic(object):
-    halfOn = False
-    connectObsButtonOn = False
-    connectObsLabelOn = False
-    startServerOn = False
-    remoteStatus = False
+
+    dynamicDict = {
+        'halfOn': False,
+        'connectObsButtonOn': False,
+        'connectObsLabelOn': False,
+        'startServerOn': False,
+        'remoteStatus': False
+    }
+
+
 
 class Files(object):
-    outDir = "output"
-    iniFile = "config.ini"
-    xmlFile = "output.xml"
-    homeFile = "home.txt"
-    awayFile = "away.txt"
-    homeScoreFile = "homescore.txt"
-    awayScoreFile = "awayscore.txt"
-    timeFile = "time.txt"
-    overTimeFile = "overtime.txt"
-    periodFile = "period.txt"
-    halfTimeFile = "halftime.txt"
-    path = os.path.abspath(__file__)
-    curPath = os.path.dirname(path)
-    outPath = os.path.join(curPath, outDir)
-    iniPath = os.path.join(curPath, iniFile)
-    xmlPath = os.path.join(outPath, xmlFile)
-    homePath = os.path.join(outPath, homeFile)
-    awayPath = os.path.join(outPath, awayFile)
-    homeScorePath = os.path.join(outPath, homeScoreFile)
-    awayScorePath = os.path.join(outPath, awayScoreFile)
-    timePath = os.path.join(outPath, timeFile)
-    overTimePath = os.path.join(outPath, overTimeFile)
-    periodPath = os.path.join(outPath, periodFile)
-    halfTimePath = os.path.join(outPath, halfTimeFile)
+
+    filesDict = {
+        'outDir': "output",
+        'iniFile': "config.ini",
+        'xmlFile': "output.xml",
+        'homeFile': "home.txt",
+        'awayFile': "away.txt",
+        'homeScoreFile': "homescore.txt",
+        'awayScoreFile': "awayscore.txt",
+        'timeFile': "time.txt",
+        'overTimeFile': "overtime.txt",
+        'periodFile': "period.txt",
+        'halfTimeFile': "halftime.txt",
+        'path': os.path.abspath(__file__)
+    }
+    filesDict['curPath'] = os.path.dirname(filesDict['path'])
+    filesDict['outPath'] = os.path.join(filesDict['curPath'], filesDict['outDir'])
+    filesDict['iniPath'] = os.path.join(filesDict['curPath'], filesDict['iniFile'])
+    filesDict['xmlPath'] = os.path.join(filesDict['outPath'], filesDict['xmlFile'])
+    filesDict['homePath'] = os.path.join(filesDict['outPath'], filesDict['homeFile'])
+    filesDict['awayPath'] = os.path.join(filesDict['outPath'], filesDict['awayFile'])
+    filesDict['homeScorePath'] = os.path.join(filesDict['outPath'], filesDict['homeScoreFile'])
+    filesDict['awayScorePath'] = os.path.join(filesDict['outPath'], filesDict['awayScoreFile'])
+    filesDict['timePath'] = os.path.join(filesDict['outPath'], filesDict['timeFile'])
+    filesDict['overTimePath'] = os.path.join(filesDict['outPath'], filesDict['overTimeFile'])
+    filesDict['periodPath'] = os.path.join(filesDict['outPath'], filesDict['periodFile'])
+    filesDict['halfTimePath'] = os.path.join(filesDict['outPath'], filesDict['halfTimeFile'])
+    
+    
     try:
-        os.mkdir(outPath)
+        os.mkdir(filesDict['outPath'])
     except FileExistsError:
         pass
 
-    # @staticmethod
-    # def save(filepath, value):
-    #     if Settings.writeFile:
-    #         file = open(filepath, "w")
-    #         file.write(value)
-    #         file.close()
-    #     if Settings.writeXml:
-    #         Files.write_xml()
-    #     if Obs.connected:
-    #         try:
-    #             if filepath == Files.homePath:
-    #                 window.obs.call(requests.SetSourceSettings(Obs.homeSource, {'text': value}))
-    #             elif filepath == Files.awayPath:
-    #                 window.obs.call(requests.SetSourceSettings(Obs.awaySource, {'text': value}))
-    #             elif filepath == Files.homeScorePath:
-    #                 window.obs.call(requests.SetSourceSettings(Obs.homeScoreSource, {'text': value}))
-    #             elif filepath == Files.awayScorePath:
-    #                 window.obs.call(requests.SetSourceSettings(Obs.awayScoreSource, {'text': value}))
-    #             elif filepath == Files.periodPath:
-    #                 window.obs.call(requests.SetSourceSettings(Obs.periodSource, {'text': value}))
-    #             elif filepath == Files.timePath:
-    #                 threading.Thread(target=window.set_time_obs, args=(Obs.clockSource, value)).start()
-    #                 #myThread = setObsTextThread(Obs.clockSource, value)
-    #                 #myThread.errorSignal.connect(window.obs_connection_lost)
-    #                 #print("About to start")
-    #                 #myThread.start()
-    #             elif filepath == Files.overTimePath:
-    #                 threading.Thread(target=window.set_time_obs, args=(Obs.overTimeSource, value)).start()
-    #             elif filepath == Files.halfTimePath:
-    #                 threading.Thread(target=window.set_time_obs, args=(Obs.halfTimeSource, value)).start()
-    #         except:
-    #             window.error_box("OBS connection", "Connection to OBS has been lost!")
-    #             Obs.connected = False
-    #             window.ui.ConnectObs_Label.setText("Not Connected")
-    #
-    # @staticmethod
-    # def save_all():
-    #     if Settings.writeFile:
-    #         for x, y in zip([Files.homePath, Files.awayPath, Files.homeScorePath, Files.awayScorePath,
-    #                          Files.timePath, Files.overTimePath, Files.periodPath, Files.halfTimePath],
-    #                         [ScoreBoard.homeTeam, ScoreBoard.awayTeam, ScoreBoard.homeScore, ScoreBoard.awayScore,
-    #                          ScoreBoard.timerString, ScoreBoard.overTimeString, ScoreBoard.period,
-    #                          ScoreBoard.halfTimeString]):
-    #             f = open(x, "w")
-    #             f.write(str(y))
-    #             f.close()
-    #     if Settings.writeXml:
-    #         Files.write_xml()
-    #
-    # @staticmethod
-    # def write_xml():
-    #     ScoreBoard.nr = + 1
-    #     file = QFile(Files.xmlPath)
-    #     file.open(QIODevice.WriteOnly)
-    #     xml = QXmlStreamWriter(file)
-    #     xml.setAutoFormatting(True)
-    #     xml.writeStartDocument()
-    #     xml.writeStartElement("items")
-    #     xml.writeTextElement("timestamp", str(ScoreBoard.nr))
-    #     xml.writeTextElement("HomeScore", str(ScoreBoard.homeScore))
-    #     xml.writeTextElement("AwayScore", str(ScoreBoard.awayScore))
-    #     xml.writeTextElement("HomeName", ScoreBoard.homeTeam)
-    #     xml.writeTextElement("AwayName", ScoreBoard.awayTeam)
-    #     xml.writeTextElement("Period", str(ScoreBoard.period))
-    #     xml.writeTextElement("Clock", ScoreBoard.timerString)
-    #     xml.writeTextElement("OverTimeClock", ScoreBoard.overTimeString)
-    #     xml.writeTextElement("HlafTimeClock", ScoreBoard.halfTimeString)
-    #     xml.writeEndElement()
-    #     xml.writeEndDocument()
-    #     file.close()
+
+class Keys(object):
+    keysOn = False
+    homeUp = []
+    homeUp2 = []
+    homeDown = []
+    awayUp = []
+    awayUp2 = []
+    awayDown = []
+    sartStop = []
+    resetTime = []
+    halfTime = []
+    resetScore = []
+    swap = []
+    periodUp = []
+    periodDown = []
+    stopSound = []
+    remoteOnOff = []
+    obsConDiscon = []
+    keysDict = {
+        'keysOn': False,
+        'homeUp': [],
+        'homeUp2': [],
+        'homeDown': [],
+        'awayUp': [],
+        'awayUp2': [],
+        'awayDown': [],
+        'sartStop': [],
+        'resetTime': [],
+        'halfTime': [],
+        'resetScore': [],
+        'swap': [],
+        'periodUp': [],
+        'periodDown': [],
+        'stopSound': [],
+        'remoteOnOff': [],
+        'obsConDiscon': []
+    }
 
 
 def get_sec_from_time():
-    return ScoreBoard.minutes * 60 + ScoreBoard.seconds
+    return ScoreBoard.scoreBoardDict['minutes'] * 60 + ScoreBoard.scoreBoardDict['seconds']
 
 
 def get_sec_from_settime():
-    return ScoreBoard.setMinutes * 60 + ScoreBoard.setSeconds
+    return ScoreBoard.scoreBoardDict['setMinutes'] * 60 + ScoreBoard.scoreBoardDict['setSeconds']
 
 
 def get_sec_from_totime():
-    return ScoreBoard.setToMinutes * 60 + ScoreBoard.setToSeconds
+    return ScoreBoard.scoreBoardDict['setToMinutes'] * 60 + ScoreBoard.scoreBoardDict['setToSeconds']
 
 
 def get_sec_from_period():
-    return ScoreBoard.setPeriodMinutes * 60 + ScoreBoard.setPeriodSeconds
+    return ScoreBoard.scoreBoardDict['setPeriodMinutes'] * 60 + ScoreBoard.scoreBoardDict['setPeriodSeconds']
 
 
 def get_sec_from_end_period():
-    return ScoreBoard.period * ScoreBoard.totalSetPeriodSec
+    return ScoreBoard.scoreBoardDict['period'] * ScoreBoard.scoreBoardDict['totalSetPeriodSec']
 
 
 def get_sec_from_start_period():
-    return (ScoreBoard.period - 1) * ScoreBoard.totalSetPeriodSec
+    return (ScoreBoard.scoreBoardDict['period'] - 1) * ScoreBoard.scoreBoardDict['totalSetPeriodSec']
 
 
 def get_sec_from_current_period():
-    return ScoreBoard.totalTimeSec - ScoreBoard.startPeriodsec
+    return ScoreBoard.scoreBoardDict['totalTimeSec'] - ScoreBoard.scoreBoardDict['startPeriodsec']
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
+        self.settings = QSettings(Files.filesDict['iniPath'], QSettings.IniFormat)
+        self.vk = 0
+        self.setObjectName("MainWindow")
         self.error = QtWidgets.QCheckBox(self)
         self.error.setChecked(False)
         self.error.setHidden(True)
-        #self.sig = Signal(str)
-        #self.myThread = None
         self.server = None
         self.obs = obsws()
         self.timer = QTimer(self)
         self.translator = QTranslator()
         self.translator.load('mainwindow_pl_PL')
         app.installTranslator(self.translator)
+        Language.currentLanguage = "polski"
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.labelStatus = QLabel(self)
@@ -591,13 +255,12 @@ class MainWindow(QMainWindow):
         self.remoteLabelStatus = QLabel(self)
         self.remoteNrLabelStatus = QLabel(self)
         self.remoteNrConnStatus = QLabel(self)
-        self.ui.statusbar.addWidget(self.labelStatus,1)
-        self.ui.statusbar.addWidget(self.connectObsStatus,2)
-        self.ui.statusbar.addWidget(self.remoteLabelStatus,1)
-        self.ui.statusbar.addWidget(self.remoteConnectStatus,2)
-        self.ui.statusbar.addWidget(self.remoteNrLabelStatus,2)
-        self.ui.statusbar.addWidget(self.remoteNrConnStatus,1)
-        # Language.currentTextError = Language.iniTextError
+        self.ui.statusbar.addWidget(self.labelStatus, 1)
+        self.ui.statusbar.addWidget(self.connectObsStatus, 2)
+        self.ui.statusbar.addWidget(self.remoteLabelStatus, 1)
+        self.ui.statusbar.addWidget(self.remoteConnectStatus, 2)
+        self.ui.statusbar.addWidget(self.remoteNrLabelStatus, 2)
+        self.ui.statusbar.addWidget(self.remoteNrConnStatus, )
         Language.retranslateUi()
         self.ui.retranslateUi(self)
         self.labelStatus.setText(Language.ConnectionToOBS)
@@ -607,6 +270,10 @@ class MainWindow(QMainWindow):
         self.remoteNrLabelStatus.setText(Language.NrOfConnections)
         self.remoteNrConnStatus.setText("-")
         self.ui.actionPolski.setChecked(True)
+        self.ui.Save_Data_CheckBox.setEnabled(False)
+        self.ui.Speed_Input.setValue(Settings.settingsDict['defaultSpeed'])
+        self.ui.MicroSpeed_Input.setValue(Settings.settingsDict['defaultTenthSpeed'])
+
         self.start()
 
     def start(self):
@@ -625,7 +292,7 @@ class MainWindow(QMainWindow):
         self.ui.Seconds_Input.valueChanged[int].connect(self.on_time_input)
         self.ui.MinutesPeriod_Input.valueChanged[int].connect(self.on_period_input)
         self.ui.SecondsPeriod_Input.valueChanged[int].connect(self.on_period_input)
-        self.ui.To_Checkbox.stateChanged.connect(self.on_to_check)
+        self.ui.To_Checkbox.toggled.connect(self.on_to_check)
         self.ui.MinutesTo_Input.valueChanged[int].connect(self.on_to_input)
         self.ui.SecondsTo_Input.valueChanged[int].connect(self.on_to_input)
         self.ui.Start_Button.clicked.connect(self.start_timer)
@@ -635,35 +302,37 @@ class MainWindow(QMainWindow):
         self.ui.ResetTimer_Button.clicked.connect(self.on_reset_timer)
         self.ui.ResetScore_Button.clicked.connect(self.on_reset_score)
         self.ui.Swap_Button.clicked.connect(self.on_swap_button)
-        self.ui.To_Checkbox.stateChanged.connect(self.on_to_check)
         self.ui.HalfTime_Button.clicked.connect(self.on_half_time)
+        self.ui.StopSound_Button.setVisible(False)
         self.ui.StopSound_Button.clicked.connect(self.play_sound)
+
 
         # -------------------- s e t t i n g s ---------------------------------
 
-        self.ui.StopWatch_Radio.clicked.connect(self.on_stopwatch)
-        self.ui.Timer_Radio.clicked.connect(self.on_timer)
-        self.ui.CurrentTime_Radio.clicked.connect(self.on_current_time)
-        self.ui.Always_on_top_Checkbox.stateChanged.connect(self.on_always_on_top)
-        self.ui.OneTenth_Checkbox.stateChanged.connect(self.on_tenth)
-        self.ui.MicroSpeed_CheckBox.stateChanged.connect(self.on_ten_speed)
-        self.ui.Speed_CheckBox.stateChanged.connect(self.on_speed)
+        self.ui.StopWatch_Radio.toggled.connect(self.on_stopwatch)
+        self.ui.Timer_Radio.toggled.connect(self.on_timer)
+        self.ui.CurrentTime_Radio.toggled.connect(self.on_current_time)
+        self.ui.Always_on_top_Checkbox.toggled.connect(self.on_always_on_top)
+        self.ui.OneTenth_Checkbox.toggled.connect(self.on_tenth)
+        self.ui.MicroSpeed_CheckBox.toggled.connect(self.on_ten_speed)
+        self.ui.Speed_CheckBox.toggled.connect(self.on_speed)
         self.ui.MicroSpeed_Input.valueChanged.connect(self.on_ten_input)
         self.ui.Speed_Input.valueChanged.connect(self.on_speed_input)
         self.ui.SpeedHelp_Button.clicked.connect(self.speed_help)
-        self.ui.TimerPreset_Checkbox.stateChanged.connect(self.on_timer_preset)
+        self.ui.TimerPreset_Checkbox.toggled.connect(self.on_timer_preset)
         self.ui.TenM_Radio.toggled.connect(self.on_ten_radio)
         self.ui.TwelveM_Radio.toggled.connect(self.on_twelve_radio)
         self.ui.FifteenM_Radio.toggled.connect(self.on_fifteen_radio)
         self.ui.TwentyM_Radio.toggled.connect(self.on_twenty_radio)
         self.ui.ThirtyM_Radio.toggled.connect(self.on_thirty_radio)
         self.ui.FortyFiveM_Radio.toggled.connect(self.on_fortyfive_radio)
-        self.ui.Use_Files_CheckBox.stateChanged.connect(self.on_use_files)
-        self.ui.Use_Xml_CheckBox.stateChanged.connect(self.on_use_xml)
+        self.ui.Use_Files_CheckBox.toggled.connect(self.on_use_files)
+        self.ui.Use_Xml_CheckBox.toggled.connect(self.on_use_xml)
+        self.ui.Save_Data_CheckBox.toggled.connect(self.on_save_data)
 
         # ----------------------- P L A Y ------------------------------------------
 
-        self.ui.PlaySound_Checkbox.stateChanged.connect(self.on_play)
+        self.ui.PlaySound_Checkbox.toggled.connect(self.on_play)
         self.ui.BrowseFile_Button.clicked.connect(self.on_play_browse)
         self.ui.BrowseFile_Input.editingFinished.connect(self.on_play_input)
         self.ui.TestSound_Button.clicked.connect(self.play_sound)
@@ -693,83 +362,87 @@ class MainWindow(QMainWindow):
         # ----------------------------- R E M O T E  -----------------------------------
 
         self.ui.Remote_Button.clicked.connect(self.on_remote_button)
-
         self.save_all()
+
+        # ---------------------------- H O T K E Y S -----------------------------------
+
+        self.ui.Hotkey_Checkbox.toggled.connect(self.on_hotkeys)
+        print("settings: ", self.settings.value('settings/loadSettings', False, bool))
+        if self.settings.value('settings/loadSettings', False, bool):
+            print("starting load")
+            self.load_settings()
+        else:
+            self.ui.Load_Settings_CheckBox.toggled.connect(self.on_load_settings)
 
     # --------------------------------- S A V E ------------------------------------
 
     def save(self, filepath, value):
-        if Settings.writeFile:
+        if Settings.settingsDict['writeFile']:
             print("save in files")
             file = open(filepath, "w")
             file.write(value)
             file.close()
-        if Settings.writeXml:
+        if Settings.settingsDict['writeXml']:
             print("save in xml")
             self.write_xml()
-        if Obs.connected:
+        if Obs.obsDict['connected']:
             try:
-                if filepath == Files.homePath:
-                    self.obs.call(requests.SetSourceSettings(Obs.homeSource, {'text': value}))
-                elif filepath == Files.awayPath:
-                    self.obs.call(requests.SetSourceSettings(Obs.awaySource, {'text': value}))
-                elif filepath == Files.homeScorePath:
-                    self.obs.call(requests.SetSourceSettings(Obs.homeScoreSource, {'text': value}))
-                elif filepath == Files.awayScorePath:
-                    self.obs.call(requests.SetSourceSettings(Obs.awayScoreSource, {'text': value}))
-                elif filepath == Files.periodPath:
-                    self.obs.call(requests.SetSourceSettings(Obs.periodSource, {'text': value}))
-                elif filepath == Files.timePath:
-                    threading.Thread(target=self.set_time_obs, args=(Obs.clockSource, value)).start()
-                elif filepath == Files.overTimePath:
-                    threading.Thread(target=self.set_time_obs, args=(Obs.overTimeSource, value)).start()
-                elif filepath == Files.halfTimePath:
-                    threading.Thread(target=self.set_time_obs, args=(Obs.halfTimeSource, value)).start()
+                if filepath == Files.filesDict['homePath']:
+                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['homeSource'], {'text': value}))
+                elif filepath == Files.filesDict['awayPath']:
+                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['awaySource'], {'text': value}))
+                elif filepath == Files.filesDict['homeScorePath']:
+                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['homeScoreSource'], {'text': value}))
+                elif filepath == Files.filesDict['awayScorePath']:
+                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['awayScoreSource'], {'text': value}))
+                elif filepath == Files.filesDict['periodPath']:
+                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['periodSource'], {'text': value}))
+                elif filepath == Files.filesDict['timePath']:
+                    threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['clockSource'], value)).start()
+                elif filepath == Files.filesDict['overTimePath']:
+                    threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['overTimeSource'], value)).start()
+                elif filepath == Files.filesDict['halfTimePath']:
+                    threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['halfTimeSource'], value)).start()
             except:
                 window.error_box(Language.ConnectionToOBS, Language.ConnectionOBSLost)
                 self.obs_disconnect()
-                #Obs.connected = False
+                #Obs.obsDict['connected'] = False
                 #window.ui.ConnectObs_Label.setText("Not Connected")
         if self.server and self.server.status == Language.Connected:
             print("save in server")
             try:
-                if filepath == Files.homePath:
+                if filepath == Files.filesDict['homePath']:
                     self.server.send("Home:"+value)
-                elif filepath == Files.awayPath:
+                elif filepath == Files.filesDict['awayPath']:
                     self.server.send("Away:"+value)
-                elif filepath == Files.homeScorePath:
+                elif filepath == Files.filesDict['homeScorePath']:
                     self.server.send("HomeScore:"+value)
-                elif filepath == Files.awayScorePath:
+                elif filepath == Files.filesDict['awayScorePath']:
                     self.server.send("AwayScore:"+value)
-                elif filepath == Files.periodPath:
+                elif filepath == Files.filesDict['periodPath']:
                     self.server.send("Period:"+value)
-                elif filepath == Files.timePath:
+                elif filepath == Files.filesDict['timePath']:
                     threading.Thread(target=self.set_time_remote, args=("Time:"+value,)).start()
-                elif filepath == Files.overTimePath:
+                elif filepath == Files.filesDict['overTimePath']:
                     threading.Thread(target=self.set_time_remote, args=("Overtime:"+value,)).start()
-                elif filepath == Files.halfTimePath:
+                elif filepath == Files.filesDict['halfTimePath']:
                     threading.Thread(target=self.set_time_remote, args=("Halftime:"+value,)).start()
             except:
                 pass
-                #window.error_box(Language.ConnectionToOBS, Language.ConnectionOBSLost)
-                #self.obs_disconnect()
-                #Obs.connected = False
-                #window.ui.ConnectObs_Label.setText("Not Connected")
-
 
     def save_all(self):
         print("zaczynam save_all")
-        if Settings.writeFile:
+        if Settings.settingsDict['writeFile']:
             print("save_all in files")
-            for x, y in zip([Files.homePath, Files.awayPath, Files.homeScorePath, Files.awayScorePath,
-                             Files.timePath, Files.overTimePath, Files.periodPath, Files.halfTimePath],
-                            [ScoreBoard.homeTeam, ScoreBoard.awayTeam, ScoreBoard.homeScore, ScoreBoard.awayScore,
-                             ScoreBoard.timerString, ScoreBoard.overTimeString, ScoreBoard.period,
-                             ScoreBoard.halfTimeString]):
+            for x, y in zip([Files.filesDict['homePath'], Files.filesDict['awayPath'], Files.filesDict['homeScorePath'], Files.filesDict['awayScorePath'],
+                             Files.filesDict['timePath'], Files.filesDict['overTimePath'], Files.filesDict['periodPath'], Files.filesDict['halfTimePath']],
+                            [ScoreBoard.scoreBoardDict['homeTeam'], ScoreBoard.scoreBoardDict['awayTeam'], ScoreBoard.scoreBoardDict['homeScore'], ScoreBoard.scoreBoardDict['awayScore'],
+                             ScoreBoard.scoreBoardDict['timerString'], ScoreBoard.scoreBoardDict['overTimeString'], ScoreBoard.scoreBoardDict['period'],
+                             ScoreBoard.scoreBoardDict['halfTimeString']]):
                 f = open(x, "w")
                 f.write(str(y))
                 f.close()
-        if Settings.writeXml:
+        if Settings.settingsDict['writeXml']:
             print("save_all in xml")
             self.write_xml()
         print("server: ", self.server)
@@ -778,33 +451,33 @@ class MainWindow(QMainWindow):
         print("Language.Connected: "+Language.Connected)
         if self.server and self.server.status == Language.Connected:
             print("save_all in server")
-            self.server.send("Home:" + ScoreBoard.homeTeam)
-            self.server.send("Away:" + ScoreBoard.awayTeam)
-            self.server.send("HomeScore:" + str(ScoreBoard.homeScore))
-            self.server.send("AwayScore:" + str(ScoreBoard.awayScore))
-            self.server.send("Period:" + str(ScoreBoard.period))
-            threading.Thread(target=self.set_time_remote, args=("Time:" + ScoreBoard.timerString,)).start()
-            threading.Thread(target=self.set_time_remote, args=("Overtime:" + ScoreBoard.overTimeString,)).start()
-            threading.Thread(target=self.set_time_remote, args=("Halftime:" + ScoreBoard.halfTimeString,)).start()
+            self.server.send("Home:" + ScoreBoard.scoreBoardDict['homeTeam'])
+            self.server.send("Away:" + ScoreBoard.scoreBoardDict['awayTeam'])
+            self.server.send("HomeScore:" + str(ScoreBoard.scoreBoardDict['homeScore']))
+            self.server.send("AwayScore:" + str(ScoreBoard.scoreBoardDict['awayScore']))
+            self.server.send("Period:" + str(ScoreBoard.scoreBoardDict['period']))
+            threading.Thread(target=self.set_time_remote, args=("Time:" + ScoreBoard.scoreBoardDict['timerString'],)).start()
+            threading.Thread(target=self.set_time_remote, args=("Overtime:" + ScoreBoard.scoreBoardDict['overTimeString'],)).start()
+            threading.Thread(target=self.set_time_remote, args=("Halftime:" + ScoreBoard.scoreBoardDict['halfTimeString'],)).start()
 
 
     def write_xml(self):
-        ScoreBoard.nr = + 1
-        file = QFile(Files.xmlPath)
+        ScoreBoard.scoreBoardDict['nr'] += 1
+        file = QFile(Files.filesDict['xmlPath'])
         file.open(QIODevice.WriteOnly)
         xml = QXmlStreamWriter(file)
         xml.setAutoFormatting(True)
         xml.writeStartDocument()
         xml.writeStartElement("items")
-        xml.writeTextElement("timestamp", str(ScoreBoard.nr))
-        xml.writeTextElement("HomeScore", str(ScoreBoard.homeScore))
-        xml.writeTextElement("AwayScore", str(ScoreBoard.awayScore))
-        xml.writeTextElement("HomeName", ScoreBoard.homeTeam)
-        xml.writeTextElement("AwayName", ScoreBoard.awayTeam)
-        xml.writeTextElement("Period", str(ScoreBoard.period))
-        xml.writeTextElement("Clock", ScoreBoard.timerString)
-        xml.writeTextElement("OverTimeClock", ScoreBoard.overTimeString)
-        xml.writeTextElement("HlafTimeClock", ScoreBoard.halfTimeString)
+        xml.writeTextElement("timestamp", str(ScoreBoard.scoreBoardDict['nr']))
+        xml.writeTextElement("HomeScore", str(ScoreBoard.scoreBoardDict['homeScore']))
+        xml.writeTextElement("AwayScore", str(ScoreBoard.scoreBoardDict['awayScore']))
+        xml.writeTextElement("HomeName", ScoreBoard.scoreBoardDict['homeTeam'])
+        xml.writeTextElement("AwayName", ScoreBoard.scoreBoardDict['awayTeam'])
+        xml.writeTextElement("Period", str(ScoreBoard.scoreBoardDict['period']))
+        xml.writeTextElement("Clock", ScoreBoard.scoreBoardDict['timerString'])
+        xml.writeTextElement("OverTimeClock", ScoreBoard.scoreBoardDict['overTimeString'])
+        xml.writeTextElement("HlafTimeClock", ScoreBoard.scoreBoardDict['halfTimeString'])
         xml.writeEndElement()
         xml.writeEndDocument()
         file.close()
@@ -812,93 +485,92 @@ class MainWindow(QMainWindow):
     # ------------------------------- T I M E R ------------------------------------
 
     def start_timer(self):
-        if not ScoreBoard.timerRunning:
-            if Settings.timer and ScoreBoard.totalTimeSec == 0:
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
+            if Settings.settingsDict['timer'] and ScoreBoard.scoreBoardDict['totalTimeSec'] == 0:
                 Language.currentTextError = Language.timerError
                 self.ui.Error_Text.setText(Language.currentTextError)
                 QTimer.singleShot(3000, self.clear_error)
                 return
-            if Settings.tenth and ScoreBoard.totalTimeSec <= 60 and Settings.timer:
-                speed = Settings.tenthSpeed if Settings.customTenthSpeed else Settings.defaultTenthSpeed
+            if Settings.settingsDict['tenth'] and ScoreBoard.scoreBoardDict['totalTimeSec'] <= 60 and Settings.settingsDict['timer']:
+                speed = Settings.settingsDict['tenthSpeed'] if Settings.settingsDict['customTenthSpeed'] else Settings.settingsDict['defaultTenthSpeed']
             else:
-                speed = Settings.speed if Settings.customSpeed else Settings.defaultSpeed
+                speed = Settings.settingsDict['speed'] if Settings.settingsDict['customSpeed'] else Settings.settingsDict['defaultSpeed']
             print("speed = ", speed)
             self.timer.start(speed)
-            ScoreBoard.timerRunning = True
+            ScoreBoard.scoreBoardDict['timerRunning'] = True
             self.ui.Start_Button.setText("STOP")
             self.timer_enable(False)
             self.settings_start_enable(True)
-            ScoreBoard.first = True
+            ScoreBoard.scoreBoardDict['first'] = True
         else:
             self.timer.stop()
-            ScoreBoard.timerRunning = False
+            ScoreBoard.scoreBoardDict['timerRunning'] = False
             self.ui.Start_Button.setText("START")
-            if Settings.stopWatch:
+            if Settings.settingsDict['stopWatch']:
                 self.stopwatch_enable(True)
-            elif Settings.timer:
+            elif Settings.settingsDict['timer']:
                 self.timer_enable(True)
-                if Play.playEnabled:
+                if Play.playDict['playEnabled']:
                     self.play_sound()
+        self.scoreboard_change()
 
     def tick(self):
-        if not (Settings.tenth and Settings.timer and ScoreBoard.totalTimeSec <= 60):
-            if Settings.currentTime:
+        if not (Settings.settingsDict['tenth'] and Settings.settingsDict['timer'] and ScoreBoard.scoreBoardDict['totalTimeSec'] <= 60):
+            if Settings.settingsDict['currentTime']:
                 self.set_current_time()
                 return
-            if Settings.stopWatch and not Settings.halfTime:
-                if not ScoreBoard.overtime:
-                    ScoreBoard.seconds += 1
-                    if ScoreBoard.seconds > 59:
-                        ScoreBoard.minutes += 1
-                        ScoreBoard.seconds = 0
-                    ScoreBoard.totalTimeSec = get_sec_from_time()
-                    ScoreBoard.totalPeriodSec = get_sec_from_current_period()
+            if Settings.settingsDict['stopWatch'] and not Settings.settingsDict['halfTime']:
+                if not ScoreBoard.scoreBoardDict['overtime']:
+                    ScoreBoard.scoreBoardDict['seconds'] += 1
+                    if ScoreBoard.scoreBoardDict['seconds'] > 59:
+                        ScoreBoard.scoreBoardDict['minutes'] += 1
+                        ScoreBoard.scoreBoardDict['seconds'] = 0
+                    ScoreBoard.scoreBoardDict['totalTimeSec'] = get_sec_from_time()
+                    ScoreBoard.scoreBoardDict['totalPeriodSec'] = get_sec_from_current_period()
                     self.set_time()
                 else:
-                    ScoreBoard.overtimeSeconds += 1
-                    if ScoreBoard.overtimeSeconds > 59:
-                        ScoreBoard.overtimeSeconds = 0
-                        ScoreBoard.overtimeMinutes += 1
+                    ScoreBoard.scoreBoardDict['overtimeSeconds'] += 1
+                    if ScoreBoard.scoreBoardDict['overtimeSeconds'] > 59:
+                        ScoreBoard.scoreBoardDict['overtimeSeconds'] = 0
+                        ScoreBoard.scoreBoardDict['overtimeMinutes'] += 1
                     self.set_overtime()
-            elif Settings.timer and not Settings.halfTime:
-                ScoreBoard.seconds -= 1
-                if ScoreBoard.seconds == 0 and ScoreBoard.minutes == 0:
+            elif Settings.settingsDict['timer'] and not Settings.settingsDict['halfTime']:
+                ScoreBoard.scoreBoardDict['seconds'] -= 1
+                if ScoreBoard.scoreBoardDict['seconds'] == 0 and ScoreBoard.scoreBoardDict['minutes'] == 0:
                     self.ui.Start_Button.clicked.emit()
-                if ScoreBoard.seconds < 0:
-                    if ScoreBoard.minutes >= 0:
-                        ScoreBoard.minutes -= 1
-                        ScoreBoard.seconds = 59
+                if ScoreBoard.scoreBoardDict['seconds'] < 0:
+                    if ScoreBoard.scoreBoardDict['minutes'] >= 0:
+                        ScoreBoard.scoreBoardDict['minutes'] -= 1
+                        ScoreBoard.scoreBoardDict['seconds'] = 59
                     else:
                         self.ui.Start_Button.clicked.emit()
-                ScoreBoard.totalTimeSec = get_sec_from_time()
-                ScoreBoard.totalTenth = ScoreBoard.totalTimeSec * 10
+                ScoreBoard.scoreBoardDict['totalTimeSec'] = get_sec_from_time()
+                ScoreBoard.scoreBoardDict['totalTenth'] = ScoreBoard.scoreBoardDict['totalTimeSec'] * 10
                 self.set_timer_time()
-            elif Settings.halfTime:
-                ScoreBoard.seconds += 1
-                if ScoreBoard.seconds > 59:
-                    ScoreBoard.minutes += 1
-                    ScoreBoard.seconds = 0
+            elif Settings.settingsDict['halfTime']:
+                ScoreBoard.scoreBoardDict['seconds'] += 1
+                if ScoreBoard.scoreBoardDict['seconds'] > 59:
+                    ScoreBoard.scoreBoardDict['minutes'] += 1
+                    ScoreBoard.scoreBoardDict['seconds'] = 0
                 self.set_halftime()
         else:
-            if ScoreBoard.first:
-                ScoreBoard.Tenth = ScoreBoard.totalTenth % 10
-                ScoreBoard.seconds = ScoreBoard.totalTenth // 10
-                ScoreBoard.minutes = 0
-                speed = Settings.tenthSpeed if Settings.customTenthSpeed else Settings.defaultTenthSpeed
+            if ScoreBoard.scoreBoardDict['first']:
+                ScoreBoard.scoreBoardDict['Tenth'] = ScoreBoard.scoreBoardDict['totalTenth'] % 10
+                ScoreBoard.scoreBoardDict['seconds'] = ScoreBoard.scoreBoardDict['totalTenth'] // 10
+                ScoreBoard.scoreBoardDict['minutes'] = 0
+                speed = Settings.settingsDict['tenthSpeed'] if Settings.settingsDict['customTenthSpeed'] else Settings.settingsDict['defaultTenthSpeed']
                 print("speed = ", speed)
                 self.timer.start(speed)
-                ScoreBoard.first = False
-            # print("seconds = ", ScoreBoard.seconds, " tenth = ", ScoreBoard.tenth)
-            ScoreBoard.tenth -= 1
-            if ScoreBoard.tenth < 0:
-                ScoreBoard.totalTenth -= 10
-                ScoreBoard.seconds -= 1
-                ScoreBoard.tenth = 9
-            # print("minutes = ", ScoreBoard.minutes, " seconds = ", ScoreBoard.seconds)
-            ScoreBoard.totalTimeSec = get_sec_from_time()
-            ScoreBoard.totalPeriodSec = get_sec_from_current_period()
-            if ScoreBoard.seconds == 0 and ScoreBoard.tenth == 0:
-                ScoreBoard.first = True
+                ScoreBoard.scoreBoardDict['first'] = False
+            ScoreBoard.scoreBoardDict['tenth'] -= 1
+            if ScoreBoard.scoreBoardDict['tenth'] < 0:
+                ScoreBoard.scoreBoardDict['totalTenth'] -= 10
+                ScoreBoard.scoreBoardDict['seconds'] -= 1
+                ScoreBoard.scoreBoardDict['tenth'] = 9
+            ScoreBoard.scoreBoardDict['totalTimeSec'] = get_sec_from_time()
+            ScoreBoard.scoreBoardDict['totalPeriodSec'] = get_sec_from_current_period()
+            if ScoreBoard.scoreBoardDict['seconds'] == 0 and ScoreBoard.scoreBoardDict['tenth'] == 0:
+                ScoreBoard.scoreBoardDict['first'] = True
                 self.ui.Start_Button.clicked.emit()
             self.set_tenth_time()
 
@@ -953,129 +625,141 @@ class MainWindow(QMainWindow):
     # ---------------------------- T I M E  I N P U T ------------------------------
 
     def on_period_input(self):
-        if not ScoreBoard.timerRunning:
-            ScoreBoard.setPeriodMinutes = self.ui.MinutesPeriod_Input.value()
-            ScoreBoard.setPeriodSeconds = self.ui.SecondsPeriod_Input.value()
-            ScoreBoard.totalSetPeriodSec = get_sec_from_period()
-            ScoreBoard.startPeriodsec = get_sec_from_start_period()
-            ScoreBoard.stopPeriodsec = get_sec_from_end_period()
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
+            ScoreBoard.scoreBoardDict['setPeriodMinutes'] = self.ui.MinutesPeriod_Input.value()
+            ScoreBoard.scoreBoardDict['setPeriodSeconds'] = self.ui.SecondsPeriod_Input.value()
+            ScoreBoard.scoreBoardDict['totalSetPeriodSec'] = get_sec_from_period()
+            ScoreBoard.scoreBoardDict['startPeriodsec'] = get_sec_from_start_period()
+            ScoreBoard.scoreBoardDict['stopPeriodsec'] = get_sec_from_end_period()
             self.update_period_time()
             self.update_on_period(None)
+            self.scoreboard_change()
 
     def on_time_input(self):
-        ScoreBoard.setMinutes = self.ui.Minutes_Input.value()
-        ScoreBoard.setSeconds = self.ui.Seconds_Input.value()
-        ScoreBoard.totalSetTimeSec = get_sec_from_settime()
-        ScoreBoard.minutes = ScoreBoard.setMinutes
-        ScoreBoard.seconds = ScoreBoard.setSeconds
-        ScoreBoard.totalTimeSec = get_sec_from_time()
-        ScoreBoard.tenth = 0
-        ScoreBoard.totalTenth = ScoreBoard.totalTimeSec * 10
+        ScoreBoard.scoreBoardDict['setMinutes'] = self.ui.Minutes_Input.value()
+        ScoreBoard.scoreBoardDict['setSeconds'] = self.ui.Seconds_Input.value()
+        ScoreBoard.scoreBoardDict['totalSetTimeSec'] = get_sec_from_settime()
+        ScoreBoard.scoreBoardDict['minutes'] = ScoreBoard.scoreBoardDict['setMinutes']
+        ScoreBoard.scoreBoardDict['seconds'] = ScoreBoard.scoreBoardDict['setSeconds']
+        ScoreBoard.scoreBoardDict['totalTimeSec'] = get_sec_from_time()
+        ScoreBoard.scoreBoardDict['tenth'] = 0
+        ScoreBoard.scoreBoardDict['totalTenth'] = ScoreBoard.scoreBoardDict['totalTimeSec'] * 10
         self.update_period_time()
         self.set_time()
 
     def set_time(self):
-        ScoreBoard.timerString = "{:02d}:{:02d}".format(ScoreBoard.minutes, ScoreBoard.seconds)
+        ScoreBoard.scoreBoardDict['timerString'] = "{:02d}:{:02d}".format(ScoreBoard.scoreBoardDict['minutes'], ScoreBoard.scoreBoardDict['seconds'])
         self.ui.Minutes_Input.valueChanged.disconnect()
         self.ui.Seconds_Input.valueChanged.disconnect()
-        self.ui.Minutes_Input.setValue(ScoreBoard.minutes)
-        self.ui.Seconds_Input.setValue(ScoreBoard.seconds)
+        self.ui.Minutes_Input.setValue(ScoreBoard.scoreBoardDict['minutes'])
+        self.ui.Seconds_Input.setValue(ScoreBoard.scoreBoardDict['seconds'])
         self.ui.Minutes_Input.valueChanged[int].connect(self.on_time_input)
         self.ui.Seconds_Input.valueChanged[int].connect(self.on_time_input)
-        self.ui.Clock_Label.setText(ScoreBoard.timerString)
-        if Settings.stopWatch:
+        self.ui.Clock_Label.setText(ScoreBoard.scoreBoardDict['timerString'])
+        if Settings.settingsDict['stopWatch']:
             self.set_period_time()
-        self.save(Files.timePath, ScoreBoard.timerString)
-        if ScoreBoard.toCheck and ScoreBoard.timerRunning and ScoreBoard.totalTimeSec == ScoreBoard.totalToSec:
+        self.save(Files.filesDict['timePath'], ScoreBoard.scoreBoardDict['timerString'])
+        if ScoreBoard.scoreBoardDict['toCheck'] and ScoreBoard.scoreBoardDict['timerRunning'] and ScoreBoard.scoreBoardDict['totalTimeSec'] == ScoreBoard.scoreBoardDict['totalToSec']:
             self.ui.Start_Button.clicked.emit()
             return
-        if ScoreBoard.totalTimeSec != 0 and ScoreBoard.totalTimeSec == ScoreBoard.stopPeriodsec:
-            # print ("total = ", ScoreBoard.totalTimeSec, " periodEnd = ", ScoreBoard.stopPeriodsec)
-            ScoreBoard.overtime = True
+        if ScoreBoard.scoreBoardDict['totalTimeSec'] != 0 and ScoreBoard.scoreBoardDict['totalTimeSec'] == ScoreBoard.scoreBoardDict['stopPeriodsec']:
+            # print ("total = ", ScoreBoard.scoreBoardDict['totalTimeSec'], " periodEnd = ", ScoreBoard.scoreBoardDict['stopPeriodsec'])
+            ScoreBoard.scoreBoardDict['overtime'] = True
+        self.scoreboard_change()
 
     def set_halftime(self):
-        ScoreBoard.halfTimeString = "{:02d}:{:02d}".format(ScoreBoard.minutes, ScoreBoard.seconds)
-        self.ui.HalfTimeClock_Label.setText(ScoreBoard.halfTimeString)
-        self.save(Files.halfTimePath, ScoreBoard.halfTimeString)
+        ScoreBoard.scoreBoardDict['halfTimeString'] = "{:02d}:{:02d}".format(ScoreBoard.scoreBoardDict['minutes'], ScoreBoard.scoreBoardDict['seconds'])
+        self.ui.HalfTimeClock_Label.setText(ScoreBoard.scoreBoardDict['halfTimeString'])
+        self.save(Files.filesDict['halfTimePath'], ScoreBoard.scoreBoardDict['halfTimeString'])
+        self.scoreboard_change()
 
     def set_timer_time(self):
-        ScoreBoard.timerString = "{:02d}:{:02d}".format(ScoreBoard.minutes, ScoreBoard.seconds)
+        ScoreBoard.scoreBoardDict['timerString'] = "{:02d}:{:02d}".format(ScoreBoard.scoreBoardDict['minutes'], ScoreBoard.scoreBoardDict['seconds'])
         self.ui.Minutes_Input.valueChanged.disconnect()
         self.ui.Seconds_Input.valueChanged.disconnect()
-        self.ui.Minutes_Input.setValue(ScoreBoard.minutes)
-        self.ui.Seconds_Input.setValue(ScoreBoard.seconds)
+        self.ui.Minutes_Input.setValue(ScoreBoard.scoreBoardDict['minutes'])
+        self.ui.Seconds_Input.setValue(ScoreBoard.scoreBoardDict['seconds'])
         self.ui.Minutes_Input.valueChanged[int].connect(self.on_time_input)
         self.ui.Seconds_Input.valueChanged[int].connect(self.on_time_input)
-        self.ui.Clock_Label.setText(ScoreBoard.timerString)
-        self.save(Files.timePath, ScoreBoard.timerString)
+        self.ui.Clock_Label.setText(ScoreBoard.scoreBoardDict['timerString'])
+        self.save(Files.filesDict['timePath'], ScoreBoard.scoreBoardDict['timerString'])
+        self.scoreboard_change()
 
     def set_tenth_time(self):
-        ScoreBoard.timerString = "{:02d}.{:01d}".format(ScoreBoard.seconds, ScoreBoard.tenth)
-        Obs.send = False if ScoreBoard.tenth % 2 else True
-        self.ui.Clock_Label.setText(ScoreBoard.timerString)
-        if ScoreBoard.tenth == 9:
+        ScoreBoard.scoreBoardDict['timerString'] = "{:02d}.{:01d}".format(ScoreBoard.scoreBoardDict['seconds'], ScoreBoard.scoreBoardDict['tenth'])
+        Obs.obsDict['send'] = False if ScoreBoard.scoreBoardDict['tenth'] % 2 else True
+        self.ui.Clock_Label.setText(ScoreBoard.scoreBoardDict['timerString'])
+        if ScoreBoard.scoreBoardDict['tenth'] == 9:
             self.ui.Minutes_Input.valueChanged.disconnect()
             self.ui.Seconds_Input.valueChanged.disconnect()
-            self.ui.Minutes_Input.setValue(ScoreBoard.minutes)
-            self.ui.Seconds_Input.setValue(ScoreBoard.seconds)
+            self.ui.Minutes_Input.setValue(ScoreBoard.scoreBoardDict['minutes'])
+            self.ui.Seconds_Input.setValue(ScoreBoard.scoreBoardDict['seconds'])
             self.ui.Minutes_Input.valueChanged[int].connect(self.on_time_input)
             self.ui.Seconds_Input.valueChanged[int].connect(self.on_time_input)
-            # perseconds = get_sec_from_current_period()
-            # ScoreBoard.periodTimeString = "{:02d}:{:02d}".format(0, perseconds)
-            # self.ui.PeriodClock_Label.setText(ScoreBoard.periodTimeString)
-        self.save(Files.timePath, ScoreBoard.timerString)
+        self.save(Files.filesDict['timePath'], ScoreBoard.scoreBoardDict['timerString'])
+        self.scoreboard_change()
 
     def set_overtime(self):
-        ScoreBoard.overTimeString = "{:02d}:{:02d}".format(ScoreBoard.overtimeMinutes, ScoreBoard.overtimeSeconds)
-        self.ui.OverTimeClock_Label.setText(ScoreBoard.overTimeString)
-        self.save(Files.overTimePath, ScoreBoard.overTimeString)
+        ScoreBoard.scoreBoardDict['overTimeString'] = "{:02d}:{:02d}".format(ScoreBoard.scoreBoardDict['overtimeMinutes'], ScoreBoard.scoreBoardDict['overtimeSeconds'])
+        self.ui.OverTimeClock_Label.setText(ScoreBoard.scoreBoardDict['overTimeString'])
+        self.save(Files.filesDict['overTimePath'], ScoreBoard.scoreBoardDict['overTimeString'])
+        self.scoreboard_change()
 
     def set_current_time(self):
-        ScoreBoard.timerString = datetime.now().strftime("%H:%M:%S")
-        self.ui.Clock_Label.setText(ScoreBoard.timerString)
-        self.save(Files.timePath, ScoreBoard.timerString)
+        ScoreBoard.scoreBoardDict['timerString'] = datetime.now().strftime("%H:%M:%S")
+        self.ui.Clock_Label.setText(ScoreBoard.scoreBoardDict['timerString'])
+        self.save(Files.filesDict['timePath'], ScoreBoard.scoreBoardDict['timerString'])
+        self.scoreboard_change()
 
     # ------------------------- H O M E ----------------------------------------------
 
     def on_home_change(self):
-        ScoreBoard.homeTeam = self.ui.HomeName_Input.text()
+        ScoreBoard.scoreBoardDict['homeTeam'] = self.ui.HomeName_Input.text()
+        self.scoreboard_change()
 
     def on_home_down(self):
-        if ScoreBoard.homeScore > 0:
-            ScoreBoard.homeScore -= 1
-            self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-            self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        if ScoreBoard.scoreBoardDict['homeScore'] > 0:
+            ScoreBoard.scoreBoardDict['homeScore'] -= 1
+            self.ui.HomeScore_Label.setText(str(ScoreBoard.scoreBoardDict['homeScore']))
+            self.save(Files.filesDict['homeScorePath'], str(ScoreBoard.scoreBoardDict['homeScore']))
+            self.scoreboard_change()
 
     def on_home_up(self):
-        ScoreBoard.homeScore += 1
-        self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        ScoreBoard.scoreBoardDict['homeScore'] += 1
+        self.ui.HomeScore_Label.setText(str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.save(Files.filesDict['homeScorePath'], str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.scoreboard_change()
 
     def on_home_up2(self):
-        ScoreBoard.homeScore += 2
-        self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        ScoreBoard.scoreBoardDict['homeScore'] += 2
+        self.ui.HomeScore_Label.setText(str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.save(Files.filesDict['homeScorePath'], str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.scoreboard_change()
 
     # ------------------------- A W A Y -----------------------------------------
 
     def on_away_change(self):
-        ScoreBoard.awayTeam = self.ui.AwayName_Input.text()
+        ScoreBoard.scoreBoardDict['awayTeam'] = self.ui.AwayName_Input.text()
+        self.scoreboard_change()
 
     def on_away_down(self):
-        if ScoreBoard.awayScore > 0:
-            ScoreBoard.awayScore -= 1
-            self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-            self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+        if ScoreBoard.scoreBoardDict['awayScore'] > 0:
+            ScoreBoard.scoreBoardDict['awayScore'] -= 1
+            self.ui.AwayScore_Label.setText(str(ScoreBoard.scoreBoardDict['awayScore']))
+            self.save(Files.filesDict['awayScorePath'], str(ScoreBoard.scoreBoardDict['awayScore']))
+            self.scoreboard_change()
 
     def on_away_up(self):
-        ScoreBoard.awayScore += 1
-        self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+        ScoreBoard.scoreBoardDict['awayScore'] += 1
+        self.ui.AwayScore_Label.setText(str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.save(Files.filesDict['awayScorePath'], str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.scoreboard_change()
 
     def on_away_up2(self):
-        ScoreBoard.awayScore += 2
-        self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
+        ScoreBoard.scoreBoardDict['awayScore'] += 2
+        self.ui.AwayScore_Label.setText(str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.save(Files.filesDict['awayScorePath'], str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.scoreboard_change()
 
     # ------------------------- P E R I O D -------------------------------------
 
@@ -1088,62 +772,64 @@ class MainWindow(QMainWindow):
         self.update_on_period(False)
 
     def update_down_period(self):
-        self.ui.Period_Label.setText(str(ScoreBoard.period))
-        ScoreBoard.startPeriodsec = get_sec_from_start_period()
-        ScoreBoard.stopPeriodsec = get_sec_from_end_period()
+        self.ui.Period_Label.setText(str(ScoreBoard.scoreBoardDict['period']))
+        ScoreBoard.scoreBoardDict['startPeriodsec'] = get_sec_from_start_period()
+        ScoreBoard.scoreBoardDict['stopPeriodsec'] = get_sec_from_end_period()
         self.set_period_time()
 
     def update_period_time(self):
-        if ScoreBoard.totalSetPeriodSec != 0 and Settings.stopWatch:
-            if ScoreBoard.totalSetTimeSec >= ScoreBoard.stopPeriodsec:
+        if ScoreBoard.scoreBoardDict['totalSetPeriodSec'] != 0 and Settings.settingsDict['stopWatch']:
+            if ScoreBoard.scoreBoardDict['totalSetTimeSec'] >= ScoreBoard.scoreBoardDict['stopPeriodsec']:
                 print("period wyzej")
-                ScoreBoard.period = ScoreBoard.totalSetTimeSec // ScoreBoard.totalSetPeriodSec + 1
+                ScoreBoard.scoreBoardDict['period'] = ScoreBoard.scoreBoardDict['totalSetTimeSec'] // ScoreBoard.scoreBoardDict['totalSetPeriodSec'] + 1
                 self.update_on_period(None)
 
-            elif ScoreBoard.totalSetTimeSec < ScoreBoard.startPeriodsec:
+            elif ScoreBoard.scoreBoardDict['totalSetTimeSec'] < ScoreBoard.scoreBoardDict['startPeriodsec']:
                 print("period nizej")
-                ScoreBoard.period = ScoreBoard.totalSetTimeSec // ScoreBoard.totalSetPeriodSec + 1
+                ScoreBoard.scoreBoardDict['period'] = ScoreBoard.scoreBoardDict['totalSetTimeSec'] // ScoreBoard.scoreBoardDict['totalSetPeriodSec'] + 1
                 self.update_down_period()
 
     def set_period_time(self):
         perminute = get_sec_from_current_period() // 60
         perseconds = get_sec_from_current_period() % 60
-        ScoreBoard.periodTimeString = "{:02d}:{:02d}".format(perminute, perseconds)
-        self.ui.PeriodClock_Label.setText(ScoreBoard.periodTimeString)
+        ScoreBoard.scoreBoardDict['periodTimeString'] = "{:02d}:{:02d}".format(perminute, perseconds)
+        self.ui.PeriodClock_Label.setText(ScoreBoard.scoreBoardDict['periodTimeString'])
+        self.scoreboard_change()
 
     def update_on_period(self, where):
         print("update on period :", where)
-        if not ScoreBoard.timerRunning or Settings.currentTime:
+        if not ScoreBoard.scoreBoardDict['timerRunning'] or Settings.settingsDict['currentTime']:
             self.reset_overtime()
             if where is None:
-                ScoreBoard.period += 0
+                ScoreBoard.scoreBoardDict['period'] += 0
             elif where:
-                ScoreBoard.period += 1
+                ScoreBoard.scoreBoardDict['period'] += 1
             else:
-                if ScoreBoard.period > 1:
-                    ScoreBoard.period -= 1
-            self.ui.Period_Label.setText(str(ScoreBoard.period))
-            if Settings.timer or Settings.currentTime:
-                self.save(Files.periodPath, str(ScoreBoard.period))
+                if ScoreBoard.scoreBoardDict['period'] > 1:
+                    ScoreBoard.scoreBoardDict['period'] -= 1
+            self.ui.Period_Label.setText(str(ScoreBoard.scoreBoardDict['period']))
+            if Settings.settingsDict['timer'] or Settings.settingsDict['currentTime']:
+                self.save(Files.filesDict['periodPath'], str(ScoreBoard.scoreBoardDict['period']))
                 return
-            ScoreBoard.totalSetPeriodSec = get_sec_from_period()
-            ScoreBoard.startPeriodsec = get_sec_from_start_period()
-            ScoreBoard.stopPeriodsec = get_sec_from_end_period()
-            print("totalperoid = ", ScoreBoard.totalSetPeriodSec, " startperiod = ", ScoreBoard.startPeriodsec,
-                  "  stopperiod = ", ScoreBoard.stopPeriodsec)
-            if ScoreBoard.totalSetPeriodSec == 0:
+            ScoreBoard.scoreBoardDict['totalSetPeriodSec'] = get_sec_from_period()
+            ScoreBoard.scoreBoardDict['startPeriodsec'] = get_sec_from_start_period()
+            ScoreBoard.scoreBoardDict['stopPeriodsec'] = get_sec_from_end_period()
+            print("totalperoid = ", ScoreBoard.scoreBoardDict['totalSetPeriodSec'], " startperiod = ", ScoreBoard.scoreBoardDict['startPeriodsec'],
+                  "  stopperiod = ", ScoreBoard.scoreBoardDict['stopPeriodsec'])
+            if ScoreBoard.scoreBoardDict['totalSetPeriodSec'] == 0:
                 return
             if where is not None:
-                ScoreBoard.minutes = ScoreBoard.startPeriodsec // 60
-                ScoreBoard.seconds = ScoreBoard.startPeriodsec % 60
-            ScoreBoard.totalSetTimeSec = get_sec_from_settime()
-            ScoreBoard.totalTimeSec = get_sec_from_time()
-            print("min= ", ScoreBoard.minutes, " sec= ", ScoreBoard.seconds)
+                ScoreBoard.scoreBoardDict['minutes'] = ScoreBoard.scoreBoardDict['startPeriodsec'] // 60
+                ScoreBoard.scoreBoardDict['seconds'] = ScoreBoard.scoreBoardDict['startPeriodsec'] % 60
+            ScoreBoard.scoreBoardDict['totalSetTimeSec'] = get_sec_from_settime()
+            ScoreBoard.scoreBoardDict['totalTimeSec'] = get_sec_from_time()
+            print("min= ", ScoreBoard.scoreBoardDict['minutes'], " sec= ", ScoreBoard.scoreBoardDict['seconds'])
             self.set_time()
         else:
             Language.currentTextError = Language.periodError
             self.ui.Error_Text.setText(Language.currentTextError)
             QTimer.singleShot(3000, self.clear_error)
+        self.scoreboard_change()
 
     # -------------------------- T O   I N P U T ---------------------------------
 
@@ -1151,251 +837,445 @@ class MainWindow(QMainWindow):
         if self.ui.To_Checkbox.isChecked():
             self.ui.MinutesTo_Input.setEnabled(True)
             self.ui.SecondsTo_Input.setEnabled(True)
-            ScoreBoard.toCheck = True
+            ScoreBoard.scoreBoardDict['toCheck'] = True
         else:
             self.ui.MinutesTo_Input.setEnabled(False)
             self.ui.SecondsTo_Input.setEnabled(False)
-            ScoreBoard.toCheck = False
+            ScoreBoard.scoreBoardDict['toCheck'] = False
+        self.scoreboard_change()
 
     def on_to_input(self):
-        ScoreBoard.setToMinutes = self.ui.MinutesTo_Input.value()
-        ScoreBoard.setToSeconds = self.ui.SecondsTo_Input.value()
-        ScoreBoard.totalToSec = get_sec_from_totime()
+        ScoreBoard.scoreBoardDict['setToMinutes'] = self.ui.MinutesTo_Input.value()
+        ScoreBoard.scoreBoardDict['setToSeconds'] = self.ui.SecondsTo_Input.value()
+        ScoreBoard.scoreBoardDict['totalToSec'] = get_sec_from_totime()
+        self.scoreboard_change()
 
     # -------------------------- B U T T O N S ------------------------------------
 
     def on_update_team(self):
-        self.save(Files.homePath, ScoreBoard.homeTeam)
-        self.save(Files.awayPath, ScoreBoard.awayTeam)
+        self.save(Files.filesDict['homePath'], ScoreBoard.scoreBoardDict['homeTeam'])
+        self.save(Files.filesDict['awayPath'], ScoreBoard.scoreBoardDict['awayTeam'])
 
     def on_reset_timer(self, period=1):
         if not period:
             period = 1
         print("period = ", period)
-        ScoreBoard.period = period
-        ScoreBoard.totalSetPeriodSec = get_sec_from_period()
-        ScoreBoard.startPeriodsec = get_sec_from_start_period()
-        ScoreBoard.stopPeriodsec = get_sec_from_end_period()
-        if Settings.stopWatch or Settings.currentTime:
-            ScoreBoard.minutes = ScoreBoard.startPeriodsec // 60
-            ScoreBoard.seconds = ScoreBoard.startPeriodsec % 60
-            ScoreBoard.setMinutes = ScoreBoard.minutes
-            ScoreBoard.setSeconds = ScoreBoard.seconds
-        elif Settings.timer:
-            if Settings.timerPresetEnable:
-                self.ui.MinutesPeriod_Input.setValue(Settings.timerPresetValue)
+        ScoreBoard.scoreBoardDict['period'] = period
+        ScoreBoard.scoreBoardDict['totalSetPeriodSec'] = get_sec_from_period()
+        ScoreBoard.scoreBoardDict['startPeriodsec'] = get_sec_from_start_period()
+        ScoreBoard.scoreBoardDict['stopPeriodsec'] = get_sec_from_end_period()
+        if Settings.settingsDict['stopWatch'] or Settings.settingsDict['currentTime']:
+            ScoreBoard.scoreBoardDict['minutes'] = ScoreBoard.scoreBoardDict['startPeriodsec'] // 60
+            ScoreBoard.scoreBoardDict['seconds'] = ScoreBoard.scoreBoardDict['startPeriodsec'] % 60
+            ScoreBoard.scoreBoardDict['setMinutes'] = ScoreBoard.scoreBoardDict['minutes']
+            ScoreBoard.scoreBoardDict['setSeconds'] = ScoreBoard.scoreBoardDict['seconds']
+        elif Settings.settingsDict['timer']:
+            if Settings.settingsDict['timerPresetEnable']:
+                self.ui.MinutesPeriod_Input.setValue(Settings.settingsDict['timerPresetValue'])
                 self.ui.SecondsPeriod_Input.setValue(0)
-            ScoreBoard.minutes = ScoreBoard.stopPeriodsec // 60
-            ScoreBoard.seconds = ScoreBoard.stopPeriodsec % 60
-            ScoreBoard.setMinutes = ScoreBoard.minutes
-            ScoreBoard.setSeconds = ScoreBoard.seconds
+            ScoreBoard.scoreBoardDict['minutes'] = ScoreBoard.scoreBoardDict['stopPeriodsec'] // 60
+            ScoreBoard.scoreBoardDict['seconds'] = ScoreBoard.scoreBoardDict['stopPeriodsec'] % 60
+            ScoreBoard.scoreBoardDict['setMinutes'] = ScoreBoard.scoreBoardDict['minutes']
+            ScoreBoard.scoreBoardDict['setSeconds'] = ScoreBoard.scoreBoardDict['seconds']
         self.reset_overtime()
-        ScoreBoard.first = True
-        ScoreBoard.totalTimeSec = get_sec_from_time()
-        ScoreBoard.totalSetTimeSec = get_sec_from_settime()
-        ScoreBoard.totalCurrentPeriodSec = get_sec_from_current_period()
-        self.ui.Period_Label.setText(str(ScoreBoard.period))
+        ScoreBoard.scoreBoardDict['first'] = True
+        ScoreBoard.scoreBoardDict['totalTimeSec'] = get_sec_from_time()
+        ScoreBoard.scoreBoardDict['totalSetTimeSec'] = get_sec_from_settime()
+        ScoreBoard.scoreBoardDict['totalCurrentPeriodSec'] = get_sec_from_current_period()
+        self.ui.Period_Label.setText(str(ScoreBoard.scoreBoardDict['period']))
         self.set_period_time()
         self.set_input_time()
         self.set_time()
 
     def on_reset_score(self):
-        ScoreBoard.awayScore = 0
-        ScoreBoard.homeScore = 0
-        self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-        self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
-        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        ScoreBoard.scoreBoardDict['awayScore'] = 0
+        ScoreBoard.scoreBoardDict['homeScore'] = 0
+        self.ui.AwayScore_Label.setText(str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.ui.HomeScore_Label.setText(str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.save(Files.filesDict['awayScorePath'], str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.save(Files.filesDict['homeScorePath'], str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.scoreboard_change()
 
     def on_swap_button(self):
-        temp = ScoreBoard.homeTeam
-        ScoreBoard.homeTeam = ScoreBoard.awayTeam
-        ScoreBoard.awayTeam = temp
-        temp = ScoreBoard.homeScore
-        ScoreBoard.homeScore = ScoreBoard.awayScore
-        ScoreBoard.awayScore = temp
+        temp = ScoreBoard.scoreBoardDict['homeTeam']
+        ScoreBoard.scoreBoardDict['homeTeam'] = ScoreBoard.scoreBoardDict['awayTeam']
+        ScoreBoard.scoreBoardDict['awayTeam'] = temp
+        temp = ScoreBoard.scoreBoardDict['homeScore']
+        ScoreBoard.scoreBoardDict['homeScore'] = ScoreBoard.scoreBoardDict['awayScore']
+        ScoreBoard.scoreBoardDict['awayScore'] = temp
         self.on_update_team()
-        self.ui.AwayName_Input.setText(ScoreBoard.awayTeam)
-        self.ui.HomeName_Input.setText(ScoreBoard.homeTeam)
-        self.ui.AwayScore_Label.setText(str(ScoreBoard.awayScore))
-        self.ui.HomeScore_Label.setText(str(ScoreBoard.homeScore))
-        self.save(Files.awayScorePath, str(ScoreBoard.awayScore))
-        self.save(Files.homeScorePath, str(ScoreBoard.homeScore))
+        self.ui.AwayName_Input.setText(ScoreBoard.scoreBoardDict['awayTeam'])
+        self.ui.HomeName_Input.setText(ScoreBoard.scoreBoardDict['homeTeam'])
+        self.ui.AwayScore_Label.setText(str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.ui.HomeScore_Label.setText(str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.save(Files.filesDict['awayScorePath'], str(ScoreBoard.scoreBoardDict['awayScore']))
+        self.save(Files.filesDict['homeScorePath'], str(ScoreBoard.scoreBoardDict['homeScore']))
+        self.scoreboard_change()
 
     def on_half_time(self):
-        if ScoreBoard.timerRunning:
+        if ScoreBoard.scoreBoardDict['timerRunning']:
             self.start_timer()
-        if not Settings.halfTime:
-            Settings.halfTime = True
+        if not Settings.settingsDict['halfTime']:
+            Settings.settingsDict['halfTime'] = True
             self.on_period_up()
-            ScoreBoard.minutes = 0
-            ScoreBoard.seconds = 0
+            ScoreBoard.scoreBoardDict['minutes'] = 0
+            ScoreBoard.scoreBoardDict['seconds'] = 0
             Language.HalfTimeText = Language.HalfActive
             self.ui.HalfTime_Button.setText(Language.HalfTimeText)
-            Dynamic.halfOn = True
+            Dynamic.dynamicDict['halfOn'] = True
             self.start_timer()
-            if Obs.inHalfTimeScene != "":
+            if Obs.obsDict['inHalfTimeScene'] != "":
                 try:
-                    self.obs.call(requests.SetCurrentScene(Obs.inHalfTimeScene))
+                    self.Obs.obsDict['call'](requests.SetCurrentScene(Obs.obsDict['inHalfTimeScene']))
                 except:
                     pass
 
         else:
-            Settings.halfTime = False
-            if Obs.inGameScene != "":
+            Settings.settingsDict['halfTime'] = False
+            if Obs.obsDict['inGameScene'] != "":
                 try:
-                    self.obs.call(requests.SetCurrentScene(Obs.inGameScene))
+                    self.Obs.obsDict['call'](requests.SetCurrentScene(Obs.obsDict['inGameScene']))
                 except:
                     pass
             self.ui.HalfTimeClock_Label.setText("00:00")
-            self.save(Files.halfTimePath, "00:00")
+            self.save(Files.filesDict['halfTimePath'], "00:00")
             Language.HalfTimeText = Language.Half
             self.ui.HalfTime_Button.setText(Language.HalfTimeText)
-            Dynamic.halfOn = False
-            self.on_reset_timer(ScoreBoard.period)
+            Dynamic.dynamicDict['halfOn'] = False
+            self.on_reset_timer(ScoreBoard.scoreBoardDict['period'])
 
     # ------------------------ S E T T I N G S ------------------------------------
 
+    def on_load_settings(self, checked):
+        if checked:
+            Settings.settingsDict['loadSettings'] = True
+            self.ui.Save_Data_CheckBox.setEnabled(True)
+        else:
+            Settings.settingsDict['loadSettings'] = False
+            self.ui.Save_Data_CheckBox.setEnabled(False)
+        self.save_settings(checked)
+
+    def save_settings(self, checked):
+        if not checked:
+            self.settings.setValue('settings/loadSettings', False)
+
+        else:
+            self.settings_change()
+            self.keys_change()
+            self.language_change()
+            self.play_change()
+            self.obs_change()
+            self.scoreboard_change()
+
+
+    def scoreboard_change(self):
+        if Settings.settingsDict['saveData']:
+            self.settings.beginGroup('scoreBoard')
+            for key, value in ScoreBoard.scoreBoardDict.items():
+                self.settings.setValue(key, value)
+            self.settings.endGroup()
+
+    def settings_change(self):
+        if Settings.settingsDict['loadSettings']:
+            self.settings.beginGroup('settings')
+            for key, value in Settings.settingsDict.items():
+                print(key, value)
+                self.settings.setValue(key, value)
+            self.settings.endGroup()
+
+    def remote_change(self):
+        if Settings.settingsDict['loadSettings']:
+            self.settings.beginGroup('remote')
+            if Dynamic.dynamicDict['startServerOn']:
+                self.settings.setValue('startServerOn', True)
+            else:
+                self.settings.setValue('startServerOn', False)
+            self.settings.endGroup()
+
+    def keys_change(self):
+        if Settings.settingsDict['loadSettings']:
+            self.settings.beginGroup('keys')
+            for key, value in Keys.keysDict.items():
+                if value or value == False:
+                    self.settings.setValue(key, value)
+                else:
+                    self.settings.setValue(key, [0, 0])
+            self.settings.endGroup()
+
+    def play_change(self):
+        if Settings.settingsDict['loadSettings']:
+            self.settings.beginGroup('play')
+            for key, value in Play.playDict.items():
+                if key == 'player':
+                    continue
+                self.settings.setValue(key, value)
+            self.settings.endGroup()
+
+    def obs_change(self):
+        if Settings.settingsDict['loadSettings']:
+            self.settings.beginGroup('obs')
+            for key, value in Obs.obsDict.items():
+                if key == 'errList':
+                    continue
+                self.settings.setValue(key, value)
+            self.settings.endGroup()
+
+    def language_change(self):
+        if Settings.settingsDict['loadSettings']:
+            self.settings.beginGroup('language')
+            self.settings.setValue('currentLanguage', Language.currentLanguage)
+            self.settings.endGroup()
+
+    def load_settings(self):
+        self.ui.Load_Settings_CheckBox.setChecked(False)
+        self.settings_load()
+        # self.play_load()
+        # self.keys_load()
+        # self.language_load()
+        # self.remote_load()
+        # self.obs_load()
+        self.ui.Load_Settings_CheckBox.toggled.connect(self.on_load_settings)
+        self.ui.Load_Settings_CheckBox.setChecked(True)
+
+
+    def settings_load(self):
+        self.settings.beginGroup('settings')
+        for key in ['writeFile', 'writeXml', 'stopWatch', 'timer', 'currentTime', 'tenth', 'timerPresetEnable', 'customSpeed',
+                    'customTenthSpeed', 'saveData', 'alwaysOnTop']:
+            Settings.settingsDict[key] = self.settings.value(key, False, bool)
+            print(key, " = ", Settings.settingsDict[key])
+        for key in ['speed', 'tenthSpeed', 'timerPresetValue']:
+            Settings.settingsDict[key] = self.settings.value(key, 0, int)
+            print(key, " = ", Settings.settingsDict[key])
+        self.settings.endGroup()
+        print('setting speed = ', Settings.settingsDict['speed'])
+        self.ui.Speed_Input.setValue(Settings.settingsDict['speed'])
+        print('setting micro speed = ', Settings.settingsDict['tenthSpeed'])
+        self.ui.MicroSpeed_Input.setValue(Settings.settingsDict['tenthSpeed'])
+
+        if Settings.settingsDict['writeFile']:
+            self.ui.Use_Files_CheckBox.setChecked(True)
+        if Settings.settingsDict['writeXml']:
+            self.ui.Use_Xml_CheckBox.setChecked(True)
+        print("stopwatch: ", Settings.settingsDict['stopWatch'])
+        if Settings.settingsDict['stopWatch']:
+            self.ui.StopWatch_Radio.setChecked(True)
+        print("timer: ", Settings.settingsDict['timer'])
+        if Settings.settingsDict['timer']:
+            self.ui.Timer_Radio.setChecked(True)
+        print("currenttime: ", Settings.settingsDict['currentTime'])
+        if Settings.settingsDict['currentTime']:
+            self.ui.CurrentTime_Radio.setChecked(True)
+        if Settings.settingsDict['tenth']:
+            self.ui.OneTenth_Checkbox.setChecked(True)
+        if Settings.settingsDict['customSpeed']:
+            self.ui.Speed_CheckBox.setChecked(True)
+        if Settings.settingsDict['customTenthSpeed']:
+            self.ui.MicroSpeed_CheckBox.setChecked(True)
+        if Settings.settingsDict['timerPresetEnable']:
+            self.ui.TimerPreset_Checkbox.setChecked(True)
+        if Settings.settingsDict['timerPresetValue'] == 10:
+            self.ui.TenM_Radio.setChecked(True)
+        elif Settings.settingsDict['timerPresetValue'] == 12:
+            self.ui.TwelveM_Radio.setChecked(True)
+        elif Settings.settingsDict['timerPresetValue'] == 15:
+            self.ui.FifteenM_Radio.setChecked(True)
+        elif Settings.settingsDict['timerPresetValue'] == 20:
+            self.ui.TwentyM_Radio.setChecked(True)
+        elif Settings.settingsDict['timerPresetValue'] == 30:
+            self.ui.ThirtyM_Radio.setChecked(True)
+        elif Settings.settingsDict['timerPresetValue'] == 45:
+            self.ui.FortyFiveM_Radio.setChecked(True)
+        if Settings.settingsDict['saveData']:
+            self.ui.Save_Data_CheckBox.setEnabled(True)
+            self.ui.Save_Data_CheckBox.setChecked(True)
+        if Settings.settingsDict['alwaysOnTop']:
+            self.ui.Always_on_top_Checkbox.setChecked(True)
+
+
+    def on_save_data(self):
+        if self.ui.Save_Data_CheckBox.isChecked():
+            Settings.settingsDict['saveData'] = True
+            self.scoreboard_change()
+            self.settings_change()
+        else:
+            Settings.settingsDict['saveData'] = False
+            self.settings_change()
+
     def on_use_files(self):
         if self.ui.Use_Files_CheckBox.isChecked():
-            Settings.writeFile = True
+            Settings.settingsDict['writeFile'] = True
         else:
-            Settings.writeFile = False
+            Settings.settingsDict['writeFile'] = False
+        self.settings_change()
 
     def on_use_xml(self):
         if self.ui.Use_Xml_CheckBox.isChecked():
-            Settings.writeXml = True
+            Settings.settingsDict['writeXml'] = True
         else:
-            Settings.writeXml = False
+            Settings.settingsDict['writeXml'] = False
+        self.settings_change()
 
     def on_stopwatch(self):
         self.ui.Clock_Label.setFont(QFont("Arial", 60))
-        if ScoreBoard.timerRunning:
+        if ScoreBoard.scoreBoardDict['timerRunning']:
             self.start_timer()
-        Settings.stopWatch = True
-        Settings.timer = False
-        Settings.currentTime = False
+        Settings.settingsDict['stopWatch'] = True
+        Settings.settingsDict['timer'] = False
+        Settings.settingsDict['currentTime'] = False
         self.on_reset_timer()
         self.stopwatch_enable(True)
         self.update_period_time()
+        self.settings_change()
 
     def on_timer(self):
         self.ui.Clock_Label.setFont(QFont("Arial", 60))
-        if ScoreBoard.timerRunning:
+        if ScoreBoard.scoreBoardDict['timerRunning']:
             self.start_timer()
-        Settings.stopWatch = False
-        Settings.timer = True
-        Settings.currentTime = False
+        Settings.settingsDict['stopWatch'] = False
+        Settings.settingsDict['timer'] = True
+        Settings.settingsDict['currentTime'] = False
         self.on_reset_timer()
         self.timer_enable(True)
+        self.settings_change()
+
 
     def on_current_time(self):
         self.ui.Clock_Label.setFont(QFont("Arial", 36))
-        Settings.stopWatch = False
-        Settings.timer = False
-        Settings.currentTime = True
+        Settings.settingsDict['stopWatch'] = False
+        Settings.settingsDict['timer'] = False
+        Settings.settingsDict['currentTime'] = True
         self.current_time_enable(False)
-        if ScoreBoard.timerRunning:
+        if ScoreBoard.scoreBoardDict['timerRunning']:
             self.start_timer()
         print("robię reset")
         self.on_reset_timer()
         self.start_timer()
         self.settings_up_period_enable(True)
+        self.settings_change()
+
 
     def on_always_on_top(self):
         if self.ui.Always_on_top_Checkbox.isChecked():
+            Settings.settingsDict['alwaysOnTop'] = True
             self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
         else:
             self.setWindowFlag(Qt.WindowStaysOnTopHint, False)
+            Settings.settingsDict['alwaysOnTop'] = False
         self.show()
+        self.settings_change()
+
 
     def on_tenth(self):
         if self.ui.OneTenth_Checkbox.isChecked():
-            Settings.tenth = True
+            Settings.settingsDict['tenth'] = True
         else:
-            Settings.tenth = False
+            Settings.settingsDict['tenth'] = False
+        self.settings_change()
+
 
     def on_timer_preset(self):
         if self.ui.TimerPreset_Checkbox.isChecked():
             self.timer_presets_enable(True)
             if self.ui.TenM_Radio.isChecked():
-                Settings.timerPresetValue = 10
+                Settings.settingsDict['timerPresetValue'] = 10
             elif self.ui.FifteenM_Radio.isChecked():
-                Settings.timerPresetValue = 15
+                Settings.settingsDict['timerPresetValue'] = 15
             elif self.ui.TwelveM_Radio.isChecked():
-                Settings.timerPresetValue = 12
+                Settings.settingsDict['timerPresetValue'] = 12
             elif self.ui.TwentyM_Radio.isChecked():
-                Settings.timerPresetValue = 20
+                Settings.settingsDict['timerPresetValue'] = 20
             elif self.ui.ThirtyM_Radio.isChecked():
-                Settings.timerPresetValue = 30
+                Settings.settingsDict['timerPresetValue'] = 30
             elif self.ui.FortyFiveM_Radio.isChecked():
-                Settings.timerPresetValue = 45
-            print(Settings.timerPresetValue)
-            if not ScoreBoard.timerRunning:
+                Settings.settingsDict['timerPresetValue'] = 45
+            print(Settings.settingsDict['timerPresetValue'])
+            if not ScoreBoard.scoreBoardDict['timerRunning']:
                 self.on_reset_timer()
         else:
             self.timer_presets_enable(False)
-            Settings.timerPresetValue = None
+        self.settings_change()
+
 
     def on_ten_radio(self):
         if self.ui.TenM_Radio.isChecked():
-            Settings.timerPresetValue = 10
-        if not ScoreBoard.timerRunning:
+            Settings.settingsDict['timerPresetValue'] = 10
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
             self.on_reset_timer()
+        self.settings_change()
+
 
     def on_fifteen_radio(self):
         if self.ui.FifteenM_Radio.isChecked():
-            Settings.timerPresetValue = 15
-        if not ScoreBoard.timerRunning:
+            Settings.settingsDict['timerPresetValue'] = 15
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
             self.on_reset_timer()
+        self.settings_change()
+
 
     def on_twelve_radio(self):
         if self.ui.TwelveM_Radio.isChecked():
-            Settings.timerPresetValue = 12
-        if not ScoreBoard.timerRunning:
+            Settings.settingsDict['timerPresetValue'] = 12
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
             self.on_reset_timer()
+        self.settings_change()
+
 
     def on_twenty_radio(self):
         if self.ui.TwentyM_Radio.isChecked():
-            Settings.timerPresetValue = 20
-        if not ScoreBoard.timerRunning:
+            Settings.settingsDict['timerPresetValue'] = 20
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
             self.on_reset_timer()
+        self.settings_change()
+
 
     def on_thirty_radio(self):
         if self.ui.ThirtyM_Radio.isChecked():
-            Settings.timerPresetValue = 30
-        if not ScoreBoard.timerRunning:
+            Settings.settingsDict['timerPresetValue'] = 30
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
             self.on_reset_timer()
+        self.settings_change()
+
 
     def on_fortyfive_radio(self):
         if self.ui.FortyFiveM_Radio.isChecked():
-            Settings.timerPresetValue = 45
-        if not ScoreBoard.timerRunning:
+            Settings.settingsDict['timerPresetValue'] = 45
+        if not ScoreBoard.scoreBoardDict['timerRunning']:
             self.on_reset_timer()
+        self.settings_change()
+
 
     def on_ten_speed(self):
         if self.ui.MicroSpeed_CheckBox.isChecked():
-            Settings.customTenthSpeed = True
-            Settings.tenthSpeed = self.ui.MicroSpeed_Input.value()
+            Settings.settingsDict['customTenthSpeed'] = True
+            Settings.settingsDict['tenthSpeed'] = self.ui.MicroSpeed_Input.value()
         else:
-            Settings.customTenthSpeed = False
-            Settings.tenthSpeed = Settings.defaultTenthSpeed
+            Settings.settingsDict['customTenthSpeed'] = False
+            Settings.settingsDict['tenthSpeed'] = Settings.settingsDict['defaultTenthSpeed']
+        self.settings_change()
+
 
     def on_speed(self):
         if self.ui.Speed_CheckBox.isChecked():
-            Settings.customSpeed = True
-            Settings.speed = self.ui.Speed_Input.value()
+            Settings.settingsDict['customSpeed'] = True
+            Settings.settingsDict['speed'] = self.ui.Speed_Input.value()
         else:
-            Settings.customSpeed = False
-            Settings.speed = Settings.defaultSpeed
+            Settings.settingsDict['customSpeed'] = False
+            Settings.settingsDict['speed'] = Settings.settingsDict['defaultSpeed']
+        self.settings_change()
+
 
     def on_ten_input(self):
-        if Settings.customTenthSpeed:
-            Settings.tenthSpeed = self.ui.MicroSpeed_Input.value()
+        if Settings.settingsDict['customTenthSpeed']:
+            Settings.settingsDict['tenthSpeed'] = self.ui.MicroSpeed_Input.value()
+            print("Settings.settingsDict['tenthSpeed'] = ", Settings.settingsDict['tenthSpeed'])
+            self.settings_change()
+
 
     def on_speed_input(self):
-        if Settings.customSpeed:
-            Settings.speed = self.ui.Speed_Input.value()
+        if Settings.settingsDict['customSpeed']:
+            Settings.settingsDict['speed'] = self.ui.Speed_Input.value()
+            self.settings_change()
 
     def speed_help(self):
         print("message")
@@ -1409,7 +1289,8 @@ class MainWindow(QMainWindow):
         self.ui.BrowseFile_Button.setEnabled(enable)
         self.ui.TestSound_Button.setEnabled(enable)
         self.ui.Volume_Slider.setEnabled(enable)
-        Play.playEnabled = enable
+        Play.playDict['playEnabled'] = enable
+        self.play_change()
 
     def on_play_browse(self):
         filename = QFileDialog.getOpenFileName(self, Language.OpenSound, "", Language.SoundFiles)
@@ -1420,30 +1301,32 @@ class MainWindow(QMainWindow):
         print("filename = ", filename)
         print("path = ", path)
         print("filename[0] = ", filename[0])
-        Play.playPath = path
+        Play.playDict['playPath'] = path
         self.ui.BrowseFile_Input.setText(path)
+        self.play_change()
 
     def on_play_input(self):
-        Play.playPath = self.ui.BrowseFile_Input.text()
-        print("play text = ", Play.playPath)
+        Play.playDict['playPath'] = self.ui.BrowseFile_Input.text()
+        print("play text = ", Play.playDict['playPath'])
+        self.play_change()
 
     def play_sound(self):
-        state = Play.player.state()
+        state = Play.playDict['player'].state()
         if state == QMediaPlayer.State.PlayingState:
-            Play.player.stop()
+            Play.playDict['player'].stop()
             print("zatrzymuje")
             return
-        if Play.playPath == "":
+        if Play.playDict['playPath'] == "":
             print("wychodze")
             return
         print("zaczynam")
         # file = 'over.mp3'
-        media = QUrl.fromLocalFile(Play.playPath)
+        media = QUrl.fromLocalFile(Play.playDict['playPath'])
         content = QMediaContent(media)
-        Play.player.setMedia(content)
-        Play.player.setVolume(Play.playVolume)
-        Play.player.stateChanged.connect(self.state)
-        Play.player.play()
+        Play.playDict['player'].setMedia(content)
+        Play.playDict['player'].setVolume(Play.playDict['playVolume'])
+        Play.playDict['player'].stateChanged.connect(self.state)
+        Play.playDict['player'].play()
 
     def state(self, state):
         if state == QMediaPlayer.State.PlayingState:
@@ -1454,8 +1337,9 @@ class MainWindow(QMainWindow):
 
     def on_volume(self, volume):
         self.ui.VolumeVal_Label.setText(str(volume))
-        Play.player.setVolume(volume)
-        Play.playVolume = volume
+        Play.playDict['player'].setVolume(volume)
+        Play.playDict['playVolume'] = volume
+        self.play_change()
 
     # -------------------------- L A N G U A G E -----------------------------------
 
@@ -1469,6 +1353,7 @@ class MainWindow(QMainWindow):
         Language.retranslateUi()
         self.ui.retranslateUi(self)
         self.additional_translate()
+        self.language_change()
 
     def polski(self):
         self.ui.actionPolski.setChecked(True)
@@ -1479,6 +1364,7 @@ class MainWindow(QMainWindow):
         Language.retranslateUi()
         self.ui.retranslateUi(self)
         self.additional_translate()
+        self.language_change()
 
     def additional_translate(self):
         self.labelStatus.setText(Language.ConnectionToOBS)
@@ -1486,25 +1372,27 @@ class MainWindow(QMainWindow):
         self.remoteLabelStatus.setText(Language.RemoteLabelStatus)
         self.remoteConnectStatus.setText(self.ui.Status_Label.text())
         self.remoteNrLabelStatus.setText(Language.NrOfConnections)
-        if Dynamic.halfOn:
+        if Dynamic.dynamicDict['halfOn']:
             self.ui.HalfTime_Button.setText(Language.HalfActive)
         else:
             self.ui.HalfTime_Button.setText(Language.Half)
-        if Dynamic.connectObsButtonOn:
+        if Dynamic.dynamicDict['connectObsButtonOn']:
             self.ui.ConnectObs_Button.setText(Language.Disconnect)
         else:
             self.ui.ConnectObs_Button.setText(Language.Connect)
-        if Dynamic.connectObsLabelOn:
+        if Dynamic.dynamicDict['connectObsLabelOn']:
             self.set_text_obs_status(Language.Connected)
         else:
             self.set_text_obs_status(Language.NotConnected)
-        if Dynamic.startServerOn:
+        if Dynamic.dynamicDict['startServerOn']:
             self.ui.Remote_Button.setText(Language.StopServer)
+            self.set_text_ip(True)
         else:
             self.ui.Remote_Button.setText(Language.StartServer)
-        if Dynamic.remoteStatus is None:
+            self.set_text_ip(False)
+        if Dynamic.dynamicDict['remoteStatus'] is None:
             self.set_text_remote_status(Language.Listening)
-        elif Dynamic.remoteStatus:
+        elif Dynamic.dynamicDict['remoteStatus']:
             self.set_text_remote_status(Language.Connected)
         else:
             self.set_text_remote_status(Language.NotConnected)
@@ -1525,19 +1413,17 @@ class MainWindow(QMainWindow):
 
     def on_obs_button1(self):
 
-        self.obs = obsws(Obs.host, Obs.port, Obs.password)
+        self.obs = obsws(Obs.obsDict['host'], Obs.obsDict['port'], Obs.obsDict['password'])
         try:
             self.obs.connect()
             self.ui.ConnectObs_Button.setText(Language.Disconnect)
             self.set_text_obs_status(Language.Connected)
-            Dynamic.connectObsButtonOn = True
-            Dynamic.connectObsLabelOn = True
-            #self.ui.ConnectObs_Label.setText("Connected")
-            #self.connectObsStatus.setText("Connected")
-            Obs.connected = True
+            Dynamic.dynamicDict['connectObsButtonOn'] = True
+            Dynamic.dynamicDict['connectObsLabelOn'] = True
+            Obs.obsDict['connected'] = True
             self.ui.ConnectObs_Button.clicked.disconnect()
             self.ui.ConnectObs_Button.clicked.connect(self.obs_disconnect)
-            scenes = self.obs.call(requests.GetSceneList()).getScenes()
+            scenes = self.Obs.obsDict['call'](requests.GetSceneList()).getScenes()
             self.ui.InGameScene_comboBox.addItem("----------")
             self.ui.HalfTimeScene_comboBox.addItem("----------")
             self.ui.ClockSource_comboBox.addItem("----------")
@@ -1548,14 +1434,12 @@ class MainWindow(QMainWindow):
             self.ui.HomeScoreSource_comboBox.addItem("----------")
             self.ui.AwayScoreSource_comboBox.addItem("----------")
             self.ui.PeriodSource_comboBox.addItem("----------")
-
             self.ui.HomeGraphicSource_comboBox.addItem("----------")
             self.ui.AwayGraphicSource_comboBox.addItem("----------")
-
             for scene in scenes:
                 self.ui.InGameScene_comboBox.addItem(scene['name'])
                 self.ui.HalfTimeScene_comboBox.addItem(scene['name'])
-            sources = self.obs.call(requests.GetSourcesList()).getSources()
+            sources = self.Obs.obsDict['call'](requests.GetSourcesList()).getSources()
             for source in sources:
                 if source['typeId'].startswith("text"):
                     self.ui.ClockSource_comboBox.addItem(source['name'])
@@ -1571,12 +1455,12 @@ class MainWindow(QMainWindow):
                     self.ui.AwayGraphicSource_comboBox.addItem(source['name'])
         except:
             self.error_box(Language.ConnectionToOBS, Language.ObsConError)
-            self.set_text_obs_status(Language.Connected)
-            #self.ui.ConnectObs_Label.setText("Not Connected")
+            self.set_text_obs_status(Language.NotConnected)
+        self.obs_change()
 
     def obs_disconnect(self):
         self.obs.disconnect()
-        Obs.connected = False
+        Obs.obsDict['connected'] = False
         self.ui.InGameScene_comboBox.clear()
         self.ui.HalfTimeScene_comboBox.clear()
         self.ui.ClockSource_comboBox.clear()
@@ -1592,84 +1476,96 @@ class MainWindow(QMainWindow):
         self.ui.AwayGraphicSource_comboBox.clear()
         self.ui.ConnectObs_Button.setText(Language.Connect)
         self.set_text_obs_status(Language.NotConnected)
-        Dynamic.connectObsButtonOn = False
-        Dynamic.connectObsLabelOn = False
-        #self.ui.ConnectObs_Label.setText(QCoreApplication.translate("MainWindow", "Not Connected"))
+        Dynamic.dynamicDict['connectObsButtonOn'] = False
+        Dynamic.dynamicDict['connectObsLabelOn'] = False
         self.ui.ConnectObs_Button.clicked.disconnect()
         self.ui.ConnectObs_Button.clicked.connect(self.on_obs_button)
+        self.obs_change()
 
 
     def obs_clock_source_set(self, source):
         if int(self.ui.ClockSource_comboBox.currentIndex()) == 0:
-            Obs.clockSource = ""
+            Obs.obsDict['clockSource'] = ""
         else:
-            Obs.clockSource = source
+            Obs.obsDict['clockSource'] = source
+        self.obs_change()
 
     def obs_overtime_clock_source_set(self, source):
         if int(self.ui.OverTimeClockSource_comboBox.currentIndex()) == 0:
-            Obs.overTimeSource = ""
+            Obs.obsDict['overTimeSource'] = ""
         else:
-            Obs.overTimeSource = source
+            Obs.obsDict['overTimeSource'] = source
+        self.obs_change()
 
     def obs_halftime_clock_source_set(self, source):
         if int(self.ui.HalfTimeClockSource_comboBox.currentIndex()) == 0:
-            Obs.halfTimeSource = ""
+            Obs.obsDict['halfTimeSource'] = ""
         else:
-            Obs.halfTimeSource = source
+            Obs.obsDict['halfTimeSource'] = source
+        self.obs_change()
 
     def obs_home_source_set(self, source):
         if int(self.ui.HomeSource_comboBox.currentIndex()) == 0:
-            Obs.homeSource = ""
+            Obs.obsDict['homeSource'] = ""
         else:
-            Obs.homeSource = source
+            Obs.obsDict['homeSource'] = source
+        self.obs_change()
 
     def obs_away_source_set(self, source):
         if int(self.ui.AwaySource_comboBox.currentIndex()) == 0:
-            Obs.awaySource = ""
+            Obs.obsDict['awaySource'] = ""
         else:
-            Obs.awaySource = source
+            Obs.obsDict['awaySource'] = source
+        self.obs_change()
 
     def obs_home_score_source_set(self, source):
         if int(self.ui.HomeScoreSource_comboBox.currentIndex()) == 0:
-            Obs.homeScoreSource = ""
+            Obs.obsDict['homeScoreSource'] = ""
         else:
-            Obs.homeScoreSource = source
+            Obs.obsDict['homeScoreSource'] = source
+        self.obs_change()
 
     def obs_away_score_source_set(self, source):
         if int(self.ui.AwayScoreSource_comboBox.currentIndex()) == 0:
-            Obs.awayScoreSource = ""
+            Obs.obsDict['awayScoreSource'] = ""
         else:
-            Obs.awayScoreSource = source
+            Obs.obsDict['awayScoreSource'] = source
+        self.obs_change()
 
     def obs_period_source_set(self, source):
         if int(self.ui.PeriodSource_comboBox.currentIndex()) == 0:
-            Obs.periodSource = ""
+            Obs.obsDict['periodSource'] = ""
         else:
-            Obs.periodSource = source
+            Obs.obsDict['periodSource'] = source
+        self.obs_change()
 
     def obs_home_graphics_source_set(self, source):
         if int(self.ui.HomeGraphicSource_comboBox.currentIndex()) == 0:
-            Obs.homeGraphicSource = ""
+            Obs.obsDict['homeGraphicSource'] = ""
         else:
-            Obs.homeGraphicSource = source
+            Obs.obsDict['homeGraphicSource'] = source
+        self.obs_change()
 
     def obs_away_graphics_source_set(self, source):
         if int(self.ui.AwayGraphicSource_comboBox.currentIndex()) == 0:
-            Obs.awayGraphicSource = ""
+            Obs.obsDict['awayGraphicSource'] = ""
         else:
-            Obs.awayGraphicSource = source
+            Obs.obsDict['awayGraphicSource'] = source
+        self.obs_change()
 
     def obs_in_game_scene_set(self, scene):
         if int(self.ui.InGameScene_comboBox.currentIndex()) == 0:
-            Obs.inGameScene = ""
+            Obs.obsDict['inGameScene'] = ""
         else:
-            Obs.inGameScene = scene
+            Obs.obsDict['inGameScene'] = scene
+        self.obs_change()
 
     def obs_half_time_scene_set(self, scene):
         if int(self.ui.HalfTimeScene_comboBox.currentIndex()) == 0:
-            Obs.inHalfTimeScene = ""
+            Obs.obsDict['inHalfTimeScene'] = ""
         else:
-            Obs.inHalfTimeScene = scene
+            Obs.obsDict['inHalfTimeScene'] = scene
+        self.obs_change()
 
     def on_home_graphics_browse(self):
         filename = QFileDialog.getOpenFileName(self, Language.OpenImage, "", Language.ImageFiles)
@@ -1677,8 +1573,9 @@ class MainWindow(QMainWindow):
         if os.path.isdir(path):
             path = ""
             return
-        Obs.homeGraphicFile = path
+        Obs.obsDict['homeGraphicFile'] = path
         self.ui.HomeGraphicFile_Input.setText(path)
+        self.obs_change()
 
     def on_away_graphics_browse(self):
         filename = QFileDialog.getOpenFileName(self, Language.OpenImage, "", Language.ImageFiles)
@@ -1686,8 +1583,9 @@ class MainWindow(QMainWindow):
         if os.path.isdir(path):
             path = ""
             return
-        Obs.awayGraphicFile = path
+        Obs.obsDict['awayGraphicFile'] = path
         self.ui.AwayGraphicFile_Input.setText(path)
+        self.obs_change()
 
     def set_time_obs(self, source, time):
         try:
@@ -1698,15 +1596,13 @@ class MainWindow(QMainWindow):
 
     def obs_connection_lost(self):
         self.obs_disconnect()
-        #Obs.connected = False
-        #self.ui.ConnectObs_Label.setText("Not Connected")
         self.error.stateChanged.disconnect()
         self.error.setChecked(False)
         self.error.stateChanged.connect(self.obs_connection_lost)
         self.error_box(Language.ConnectionToOBS, Language.ConnectionOBSLost)
 
     def on_save_obs(self):
-        if not Obs.connected:
+        if not Obs.obsDict['connected']:
             self.error_box(Language.SaveError, Language.MustConnect)
             return
         filename = QFileDialog.getSaveFileName(self, "Save OBS Settings", os.path.dirname(__file__), "OBS Settings Files (*.obs)")
@@ -1714,48 +1610,48 @@ class MainWindow(QMainWindow):
         if os.path.isdir(path):
             return
         settings = QSettings(path, QSettings.IniFormat)
-        settings.setValue("ingamescene", Obs.inGameScene)
-        settings.setValue("halftimescene", Obs.inHalfTimeScene)
-        settings.setValue("clocksource", Obs.clockSource)
-        settings.setValue("overtimeclocksource", Obs.overTimeSource)
-        settings.setValue("halftimeclocksource", Obs.halfTimeSource)
-        settings.setValue("homesource", Obs.homeSource)
-        settings.setValue("awaysource", Obs.awaySource)
-        settings.setValue("homescoresource", Obs.homeScoreSource)
-        settings.setValue("awayscoresource", Obs.awayScoreSource)
-        settings.setValue("periodsource", Obs.periodSource)
-        settings.setValue("homegraphicsource", Obs.homeGraphicSource)
-        settings.setValue("awaygraphicsource", Obs.awayGraphicSource)
-        settings.setValue("homegraphicfile", Obs.homeGraphicFile)
-        settings.setValue("awaygraphicfile", Obs.awayGraphicFile)
+        settings.setValue("ingamescene", Obs.obsDict['inGameScene'])
+        settings.setValue("halftimescene", Obs.obsDict['inHalfTimeScene'])
+        settings.setValue("clocksource", Obs.obsDict['clockSource'])
+        settings.setValue("overtimeclocksource", Obs.obsDict['overTimeSource'])
+        settings.setValue("halftimeclocksource", Obs.obsDict['halfTimeSource'])
+        settings.setValue("homesource", Obs.obsDict['homeSource'])
+        settings.setValue("awaysource", Obs.obsDict['awaySource'])
+        settings.setValue("homescoresource", Obs.obsDict['homeScoreSource'])
+        settings.setValue("awayscoresource", Obs.obsDict['awayScoreSource'])
+        settings.setValue("periodsource", Obs.obsDict['periodSource'])
+        settings.setValue("homegraphicsource", Obs.obsDict['homeGraphicSource'])
+        settings.setValue("awaygraphicsource", Obs.obsDict['awayGraphicSource'])
+        settings.setValue("homegraphicfile", Obs.obsDict['homeGraphicFile'])
+        settings.setValue("awaygraphicfile", Obs.obsDict['awayGraphicFile'])
 
     def on_load_obs(self):
-        if not Obs.connected:
-            self.error_box("Błąd odczytu.", "Musisz być połączpny z Obs.")
+        if not Obs.obsDict['connected']:
+            self.error_box("Błąd odczytu.", "Musisz być połączpny z Obs.obsDict['']")
             return
         filename = QFileDialog.getOpenFileName(self, "Load OBS Settings", os.path.dirname(__file__), "Obs Settings Files (*.obs)")
         path = os.path.abspath(filename[0])
         if os.path.isdir(path):
             return
         settings = QSettings(path, QSettings.IniFormat)
-        if Obs.errlist:
-            Obs.errlist.clear()
-        self.load_obs_to(settings, self.ui.InGameScene_comboBox, "ingamescene", Obs.inGameScene)
-        self.load_obs_to(settings, self.ui.HalfTimeScene_comboBox, "halftimescene", Obs.inHalfTimeScene)
-        self.load_obs_to(settings, self.ui.ClockSource_comboBox, "clocksource", Obs.clockSource)
-        self.load_obs_to(settings, self.ui.OverTimeClockSource_comboBox, "overtimeclocksource", Obs.overTimeSource)
-        self.load_obs_to(settings, self.ui.HalfTimeClockSource_comboBox, "halftimeclocksource", Obs.halfTimeSource)
-        self.load_obs_to(settings, self.ui.HomeSource_comboBox, "homesource", Obs.homeSource)
-        self.load_obs_to(settings, self.ui.AwaySource_comboBox, "awaysource", Obs.awaySource)
-        self.load_obs_to(settings, self.ui.HomeScoreSource_comboBox, "homescoresource", Obs.homeScoreSource)
-        self.load_obs_to(settings, self.ui.AwayScoreSource_comboBox, "awayscoresource", Obs.awayScoreSource)
-        self.load_obs_to(settings, self.ui.PeriodSource_comboBox, "periodsource", Obs.periodSource)
-        self.load_obs_to(settings, self.ui.HomeGraphicSource_comboBox, "homegraphicsource", Obs.homeGraphicSource)
-        self.load_obs_to(settings, self.ui.AwayGraphicSource_comboBox, "awaygraphicsource", Obs.awayGraphicSource)
-        self.load_obs_file_to(settings, self.ui.HomeGraphicFile_Input, "homegraphicfile", Obs.homeGraphicFile)
-        self.load_obs_file_to(settings, self.ui.AwayGraphicFile_Input, "awaygraphicfile", Obs.awayGraphicFile)
+        if Obs.obsDict['errlist']:
+            Obs.obsDict['errlist'].clear()
+        self.load_obs_to(settings, self.ui.InGameScene_comboBox, "ingamescene", Obs.obsDict['inGameScene'])
+        self.load_obs_to(settings, self.ui.HalfTimeScene_comboBox, "halftimescene", Obs.obsDict['inHalfTimeScene'])
+        self.load_obs_to(settings, self.ui.ClockSource_comboBox, "clocksource", Obs.obsDict['clockSource'])
+        self.load_obs_to(settings, self.ui.OverTimeClockSource_comboBox, "overtimeclocksource", Obs.obsDict['overTimeSource'])
+        self.load_obs_to(settings, self.ui.HalfTimeClockSource_comboBox, "halftimeclocksource", Obs.obsDict['halfTimeSource'])
+        self.load_obs_to(settings, self.ui.HomeSource_comboBox, "homesource", Obs.obsDict['homeSource'])
+        self.load_obs_to(settings, self.ui.AwaySource_comboBox, "awaysource", Obs.obsDict['awaySource'])
+        self.load_obs_to(settings, self.ui.HomeScoreSource_comboBox, "homescoresource", Obs.obsDict['homeScoreSource'])
+        self.load_obs_to(settings, self.ui.AwayScoreSource_comboBox, "awayscoresource", Obs.obsDict['awayScoreSource'])
+        self.load_obs_to(settings, self.ui.PeriodSource_comboBox, "periodsource", Obs.obsDict['periodSource'])
+        self.load_obs_to(settings, self.ui.HomeGraphicSource_comboBox, "homegraphicsource", Obs.obsDict['homeGraphicSource'])
+        self.load_obs_to(settings, self.ui.AwayGraphicSource_comboBox, "awaygraphicsource", Obs.obsDict['awayGraphicSource'])
+        self.load_obs_file_to(settings, self.ui.HomeGraphicFile_Input, "homegraphicfile", Obs.obsDict['homeGraphicFile'])
+        self.load_obs_file_to(settings, self.ui.AwayGraphicFile_Input, "awaygraphicfile", Obs.obsDict['awayGraphicFile'])
 
-        if Obs.errlist:
+        if Obs.obsDict['errlist']:
             self.error_box("Sprawdź Zbiór Scen.", "Brak źródeł o nazwie:\n" + self.list_errlist())
 
 
@@ -1766,20 +1662,20 @@ class MainWindow(QMainWindow):
         elif obsvar == "":
             widget.setCurrentText("----------")
         else:
-            Obs.errlist.append(obsvar)
+            Obs.obsDict['errlist'].append(obsvar)
             obsvar = ""
             widget.setCurrentText("----------")
 
     def load_obs_file_to(self, settings, widget, key, obsvar ):
         obsvar = settings.value(key, "", str)
         if not os.path.isfile(obsvar) and not obsvar == "":
-            Obs.errlist.append("brak pliku: " + obsvar)
+            Obs.obsDict['errlist'].append("brak pliku: " + obsvar)
             obsvar = ""
         widget.setText(obsvar)
 
     def list_errlist(self):
         text = ""
-        for error in Obs.errlist:
+        for error in Obs.obsDict['errlist']:
             text += "- " + error + "\n"
         return text
 
@@ -1788,26 +1684,33 @@ class MainWindow(QMainWindow):
     def on_remote_button(self):
         if self.ui.Remote_Button.text() == Language.StartServer:
             self.ui.Remote_Button.setText(Language.StopServer)
-            Dynamic.startServerOn = True
+            Dynamic.dynamicDict['startServerOn'] = True
             self.server = MyServer(self)
         else:
             self.ui.Remote_Button.setText(Language.StartServer)
-            Dynamic.startServerOn = False
+            Dynamic.dynamicDict['startServerOn'] = False
             self.server.my_close()
             self.server = None
+        self.remote_change()
 
     def set_text_remote_status(self, text):
         self.ui.Status_Label.setText(text)
         self.remoteConnectStatus.setText(text)
         if text == Language.NotConnected:
-            Dynamic.remoteStatus = False
+            Dynamic.dynamicDict['remoteStatus'] = False
             self.ui.Status_Label.setStyleSheet(u"color: rgb(255, 0, 0);")
         elif text == Language.Listening:
-            Dynamic.remoteStatus = None
+            Dynamic.dynamicDict['remoteStatus'] = None
             self.ui.Status_Label.setStyleSheet(u"color: rgb(0, 0, 255);")
         elif text == Language.Connected:
-            Dynamic.remoteStatus = True
+            Dynamic.dynamicDict['remoteStatus'] = True
             self.ui.Status_Label.setStyleSheet(u"color: rgb(0, 255, 0);")
+
+    def set_text_ip(self, onoff):
+        if not onoff:
+            self.ui.IP_Label.setText(Language.IpAddressesDefault)
+        else:
+            self.ui.IP_Label.setText(Language.IpAddresses + ', '.join(self.server.list))
 
     def update_nr_clients(self, number):
         print("Execute update.")
@@ -1820,6 +1723,322 @@ class MainWindow(QMainWindow):
             print("CheckedTrue")
             self.error.setChecked(True)
 
+    # --------------------------------- H O T K E Y S ------------------------------
+
+    def on_hotkeys(self):
+        if self.ui.Hotkey_Checkbox.isChecked():
+            self.enable_hotkeys(True)
+
+        else:
+            self.enable_hotkeys(False)
+
+
+    def enable_hotkeys(self, enable):
+        self.ui.HomeUp_Key.event
+        self.ui.HomeUp_Key.setEnabled(enable)
+        self.ui.HomeUp2_Key.setEnabled(enable)
+        self.ui.HomeDwn_Key.setEnabled(enable)
+        self.ui.AwayUp_Key.setEnabled(enable)
+        self.ui.AwayUp2_Key.setEnabled(enable)
+        self.ui.AwayDwn_Key.setEnabled(enable)
+        self.ui.StartStop_Key.setEnabled(enable)
+        self.ui.ResetTimer_Key.setEnabled(enable)
+        self.ui.HalfTime_Key.setEnabled(enable)
+        self.ui.ResetScore_Key.setEnabled(enable)
+        self.ui.SwapTeams_Key.setEnabled(enable)
+        self.ui.PeriodUp_Key.setEnabled(enable)
+        self.ui.PeriodDwn_Key.setEnabled(enable)
+        self.ui.StopSund_Key.setEnabled(enable)
+        self.ui.RemoteOnOff_Key.setEnabled(enable)
+        self.ui.ObsConnect_Key.setEnabled(enable)
+        if enable:
+            self.ui.HomeUp_Key.installEventFilter(self)
+            self.ui.HomeUp2_Key.installEventFilter(self)
+            self.ui.HomeDwn_Key.installEventFilter(self)
+            self.ui.AwayUp_Key.installEventFilter(self)
+            self.ui.AwayUp2_Key.installEventFilter(self)
+            self.ui.AwayDwn_Key.installEventFilter(self)
+            self.ui.StartStop_Key.installEventFilter(self)
+            self.ui.ResetTimer_Key.installEventFilter(self)
+            self.ui.HalfTime_Key.installEventFilter(self)
+            self.ui.ResetScore_Key.installEventFilter(self)
+            self.ui.SwapTeams_Key.installEventFilter(self)
+            self.ui.PeriodUp_Key.installEventFilter(self)
+            self.ui.PeriodDwn_Key.installEventFilter(self)
+            self.ui.StopSund_Key.installEventFilter(self)
+            self.ui.RemoteOnOff_Key.installEventFilter(self)
+            self.ui.ObsConnect_Key.installEventFilter(self)
+            #app.installEventFilter(self)
+            self.installEventFilter(self)
+            self.ui.Settings.installEventFilter(self)
+
+        else:
+            self.ui.HomeUp_Key.removeEventFilter(self)
+            self.ui.HomeUp2_Key.removeEventFilter(self)
+            self.ui.HomeDwn_Key.removeEventFilter(self)
+            self.ui.AwayUp_Key.removeEventFilter(self)
+            self.ui.AwayUp2_Key.removeEventFilter(self)
+            self.ui.AwayDwn_Key.removeEventFilter(self)
+            self.ui.StartStop_Key.removeEventFilter(self)
+            self.ui.ResetTimer_Key.removeEventFilter(self)
+            self.ui.HalfTime_Key.removeEventFilter(self)
+            self.ui.ResetScore_Key.removeEventFilter(self)
+            self.ui.SwapTeams_Key.removeEventFilter(self)
+            self.ui.PeriodUp_Key.removeEventFilter(self)
+            self.ui.PeriodDwn_Key.removeEventFilter(self)
+            self.ui.StopSund_Key.removeEventFilter(self)
+            self.ui.RemoteOnOff_Key.removeEventFilter(self)
+            self.ui.ObsConnect_Key.removeEventFilter(self)
+            self.removeEventFilter(self)
+            self.ui.Settings.removeEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if isinstance(event, QtGui.QKeyEvent):
+            pass
+            if event.isAutoRepeat():
+                pass
+                return True
+        else:
+            return False
+        if event.type() is QEvent.KeyPress:
+            # if watched.objectName() == "MainWindowWindow":
+            #     print("wychodze")
+            #     return False
+            # print("watched", watched)
+            self.vk = event.nativeVirtualKey()
+            mod = event.modifiers()
+            intmod = int(mod)
+            if self.vk in [16, 17, 18]:
+                self.vk = 0
+            print("vk = ", self.vk)
+            print("intmod = " , intmod)
+            name = CharMap.get(self.vk)
+            if watched is self.ui.HomeUp_Key:
+                if self.vk == 46:
+                   if self.check_del(watched, Keys.keysDict['homeUp']):
+                        return True
+
+                self.ui.HomeUp_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['homeUp'] = [self.vk, intmod]
+
+                ktory = 1
+                return True
+            elif watched is self.ui.HomeUp2_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['homeUp2']):
+                        return True
+                self.ui.HomeUp2_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['homeUp2'] = [self.vk, intmod]
+                ktory = 2
+                return True
+            elif watched is self.ui.HomeDwn_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['homeDown']):
+                        return True
+
+                self.ui.HomeDwn_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['homeDown'] = [self.vk, intmod]
+                ktory = 3
+                return True
+            elif watched is self.ui.AwayUp_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['awayUp']):
+                        return True
+                self.ui.AwayUp_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['awayUp'] = [self.vk, intmod]
+                ktory = 4
+                return True
+            elif watched is self.ui.AwayUp2_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['awayUp2']):
+                        return True
+                self.ui.AwayUp2_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['awayUp2'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.AwayDwn_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['awayDown']):
+                        return True
+
+                self.ui.AwayDwn_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['awayDown'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.StartStop_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['sartStop']):
+                        return True
+
+                self.ui.StartStop_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['sartStop'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.ResetTimer_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['resetTime']):
+                        return True
+
+                self.ui.ResetTimer_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['resetTime'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.HalfTime_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['halfTime']):
+                        return True
+
+                self.ui.HalfTime_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['halfTime'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.ResetScore_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['resetScore']):
+                        return True
+
+                self.ui.ResetScore_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['resetScore'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.SwapTeams_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['swap']):
+                        return True
+
+                self.ui.SwapTeams_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['swap'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.PeriodUp_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['periodUp']):
+                        return True
+
+                self.ui.PeriodUp_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['periodUp'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.PeriodDwn_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['periodDown']):
+                        return True
+
+                self.ui.PeriodDwn_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['periodDown'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.StopSund_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['stopSound']):
+                        return True
+
+                self.ui.StopSund_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['stopSound'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.RemoteOnOff_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['remoteOnOff']):
+                        return True
+
+                self.ui.RemoteOnOff_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['remoteOnOff'] = [self.vk, intmod]
+                return True
+            elif watched is self.ui.ObsConnect_Key:
+                if self.vk == 46:
+                    if self.check_del(watched, Keys.keysDict['obsConDiscon']):
+                        return True
+
+                self.ui.ObsConnect_Key.setText((QtGui.QKeySequence(intmod).toString()) + name)
+                Keys.keysDict['obsConDiscon'] = [self.vk, intmod]
+                return True
+            else:
+                ktory = 0
+            # self.vk = event.nativeVirtualKey()
+            # mod = event.modifiers()
+            # intmod = int(mod)
+            # if self.vk in [16,17,18]:
+            #     self.vk = 0
+            # name = CharMap.get(self.vk)
+            # print("watched", watched.objectName())
+            if ktory == 1:
+                # print("ktory 1")
+                # self.key1 = self.vk
+                # self.control1 = mod
+                # self.ui.lineEdit.setText((QtGui.QKeySequence(intmod).toString())+name)
+                # self.Settings.setValue("key1",self.vk)
+                # self.Settings.setValue("control1",intmod)
+                # print(self.key1, intmod)
+                return True
+            elif ktory == 2:
+                # print("ktory 2")
+                # self.key2 = self.vk
+                # self.control2 = mod
+                # self.ui.lineEdit_2.setText((QtGui.QKeySequence(intmod).toString())+name)
+                # self.Settings.setValue("key2", self.vk)
+                # self.Settings.setValue("control2", intmod)
+                return True
+            else:
+                key_action = False
+                if [self.vk, mod] == Keys.keysDict['homeUp']:  # self.key1 and mod == self.control1:
+                    self.on_home_up()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['homeUp2']:
+                    self.on_home_up2()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['homeDown']:
+                    self.on_home_down()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['awayUp']:
+                    self.on_away_up()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['awayUp2']:
+                    self.on_away_up2()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['awayDown']:
+                    self.on_away_down()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['sartStop']:
+                    self.start_timer()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['resetTime']:
+                    self.on_reset_timer()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['halfTime']:
+                    self.on_half_time()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['resetScore']:
+                    self.on_reset_score()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['swap']:
+                    self.on_swap_button()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['periodUp']:
+                    self.on_period_up()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['periodDown']:
+                    self.on_period_down()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['stopSound']:
+                    # self.
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['remoteOnOff']:
+                    self.on_remote_button()
+                    key_action = True
+                if [self.vk, mod] == Keys.keysDict['obsConDiscon']:
+                    self.ui.ConnectObs_Button.clicked.emit()
+                    key_action = True
+                if key_action:
+                    return True
+
+        return False
+
+
+    def check_del(self, keyHolder:QLabel, keyList:list):
+        if keyHolder.text() == "":
+            return False
+        else:
+            keyHolder.clear()
+            self.vk = 0
+            keyList.clear()
+            return True
+
+
+
+
+
+
     # ------------------------------------------------------------------------------
 
     def clear_error(self):
@@ -1827,44 +2046,44 @@ class MainWindow(QMainWindow):
         self.ui.Error_Text.setText(Language.currentTextError)
 
     def set_time_from_sec(self, sec):
-        ScoreBoard.minutes = sec // 60
-        ScoreBoard.sconds = sec % 60
-        ScoreBoard.timerString = "{:02d}:{:02d}".format(ScoreBoard.minutes, ScoreBoard.seconds)
+        ScoreBoard.scoreBoardDict['minutes'] = sec // 60
+        ScoreBoard.scoreBoardDict['sconds'] = sec % 60
+        ScoreBoard.scoreBoardDict['timerString'] = "{:02d}:{:02d}".format(ScoreBoard.scoreBoardDict['minutes'], ScoreBoard.scoreBoardDict['seconds'])
 
     def set_settime_from_sec(self, sec):
-        ScoreBoard.setMinutes = sec // 60
-        ScoreBoard.setSeconds = sec % 60
-        self.ui.Minutes_Input.setValue(ScoreBoard.setMinutes)
-        self.ui.Seconds_Input.setValue(ScoreBoard.setSeconds)
+        ScoreBoard.scoreBoardDict['setMinutes'] = sec // 60
+        ScoreBoard.scoreBoardDict['setSeconds'] = sec % 60
+        self.ui.Minutes_Input.setValue(ScoreBoard.scoreBoardDict['setMinutes'])
+        self.ui.Seconds_Input.setValue(ScoreBoard.scoreBoardDict['setSeconds'])
 
     def set_totime_from_sec(self, sec):
-        ScoreBoard.setToMinutes = sec // 60
-        ScoreBoard.setToSeconds = sec % 60
-        self.ui.MinutesTo_Input.setValue(ScoreBoard.setToMinutes)
-        self.ui.SecondsTo_Input.setValue(ScoreBoard.setToSeconds)
+        ScoreBoard.scoreBoardDict['setToMinutes'] = sec // 60
+        ScoreBoard.scoreBoardDict['setToSeconds'] = sec % 60
+        self.ui.MinutesTo_Input.setValue(ScoreBoard.scoreBoardDict['setToMinutes'])
+        self.ui.SecondsTo_Input.setValue(ScoreBoard.scoreBoardDict['setToSeconds'])
 
     def set_period_from_sec(self, sec):
-        ScoreBoard.setPeriodMinutes = sec // 60
-        ScoreBoard.setPeriodSeconds = sec % 60
-        self.ui.MinutesPeriod_Input.setValue(ScoreBoard.setPeriodMinutes)
-        self.ui.SecondsPeriod_Input.setValue(ScoreBoard.setPeriodSeconds)
+        ScoreBoard.scoreBoardDict['setPeriodMinutes'] = sec // 60
+        ScoreBoard.scoreBoardDict['setPeriodSeconds'] = sec % 60
+        self.ui.MinutesPeriod_Input.setValue(ScoreBoard.scoreBoardDict['setPeriodMinutes'])
+        self.ui.SecondsPeriod_Input.setValue(ScoreBoard.scoreBoardDict['setPeriodSeconds'])
 
     def set_input_time(self):
         self.ui.Minutes_Input.valueChanged.disconnect()
         self.ui.Seconds_Input.valueChanged.disconnect()
-        self.ui.Minutes_Input.setValue(ScoreBoard.minutes)
-        self.ui.Seconds_Input.setValue(ScoreBoard.seconds)
+        self.ui.Minutes_Input.setValue(ScoreBoard.scoreBoardDict['minutes'])
+        self.ui.Seconds_Input.setValue(ScoreBoard.scoreBoardDict['seconds'])
         self.ui.Minutes_Input.valueChanged[int].connect(self.on_time_input)
         self.ui.Seconds_Input.valueChanged[int].connect(self.on_time_input)
 
     def reset_overtime(self):
-        ScoreBoard.overtime = False
-        ScoreBoard.overtimeMinutes = 0
-        ScoreBoard.overtimeSeconds = 0
+        ScoreBoard.scoreBoardDict['overtime'] = False
+        ScoreBoard.scoreBoardDict['overtimeMinutes'] = 0
+        ScoreBoard.scoreBoardDict['overtimeSeconds'] = 0
         self.set_overtime()
 
     def timer_presets_enable(self, enable):
-        Settings.timerPresetEnable = enable
+        Settings.settingsDict['timerPresetEnable'] = enable
         self.ui.TenM_Radio.setEnabled(enable)
         self.ui.TwelveM_Radio.setEnabled(enable)
         self.ui.FifteenM_Radio.setEnabled(enable)
