@@ -11,7 +11,7 @@ from ui_mainwindow import Ui_MainWindow
 from char_map import CharMap
 from PySide2.QtCore import QEvent, QTimer, QSettings, QTranslator, QXmlStreamWriter
 from PySide2.QtCore import QIODevice, QFile, QCoreApplication, Qt, QUrl
-from PySide2.QtGui import QFont
+from PySide2.QtGui import QFont, QPixmap
 from obswebsocket import obsws, requests
 from worker import MyServer
 
@@ -50,7 +50,8 @@ class ScoreBoard(object):
                       'overtimeSeconds': 0,
                       'toCheck': False,
                       'timerRunning': False,
-                      'overtime': False
+                      'overtime': False,
+                      'pregame' : False
                       }
     
 
@@ -305,6 +306,10 @@ class MainWindow(QMainWindow):
         self.ui.HalfTime_Button.clicked.connect(self.on_half_time)
         self.ui.StopSound_Button.setVisible(False)
         self.ui.StopSound_Button.clicked.connect(self.play_sound)
+        self.ui.PreGame_Button.clicked.connect(self.pregame)
+        self.pm = QPixmap("greydot16.png")
+        self.ui.ImageLabel.setPixmap(self.pm);
+        self.ui.ImageLabel.setScaledContents(True);
 
 
         # -------------------- s e t t i n g s ---------------------------------
@@ -851,6 +856,20 @@ class MainWindow(QMainWindow):
         self.scoreboard_change()
 
     # -------------------------- B U T T O N S ------------------------------------
+
+    def pregame(self):
+
+        #self.ui.PreGame_radioButton.setEnabled(True)
+        #self.ui.PreGame_radioButton.setCheckable(True)
+        if not ScoreBoard.scoreBoardDict['pregame']:
+            self.pm = QPixmap("reddot16.png")
+            self.ui.ImageLabel.setPixmap(self.pm)
+            ScoreBoard.scoreBoardDict['pregame'] = True
+        else:
+            self.pm = QPixmap("greydot16.png")
+            self.ui.ImageLabel.setPixmap(self.pm)
+            ScoreBoard.scoreBoardDict['pregame'] = False
+        
 
     def on_update_team(self):
         self.save(Files.filesDict['homePath'], ScoreBoard.scoreBoardDict['homeTeam'])

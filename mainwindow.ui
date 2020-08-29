@@ -1150,6 +1150,46 @@ Break Time</string>
                <number>0</number>
               </property>
              </widget>
+             <widget class="QPushButton" name="PreGame_Button">
+              <property name="geometry">
+               <rect>
+                <x>540</x>
+                <y>360</y>
+                <width>90</width>
+                <height>50</height>
+               </rect>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(0, 0, 0);</string>
+              </property>
+              <property name="text">
+               <string>PreGame</string>
+              </property>
+              <property name="checkable">
+               <bool>false</bool>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+             <widget class="QLabel" name="ImageLabel">
+              <property name="geometry">
+               <rect>
+                <x>650</x>
+                <y>375</y>
+                <width>16</width>
+                <height>16</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
             </widget>
             <widget class="QWidget" name="Settings">
              <attribute name="title">
@@ -2714,7 +2754,7 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
               <property name="geometry">
                <rect>
                 <x>410</x>
-                <y>35</y>
+                <y>55</y>
                 <width>161</width>
                 <height>31</height>
                </rect>
@@ -2732,7 +2772,7 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
               <property name="geometry">
                <rect>
                 <x>410</x>
-                <y>75</y>
+                <y>95</y>
                 <width>161</width>
                 <height>31</height>
                </rect>
@@ -2750,7 +2790,7 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
               <property name="geometry">
                <rect>
                 <x>570</x>
-                <y>40</y>
+                <y>60</y>
                 <width>117</width>
                 <height>24</height>
                </rect>
@@ -2777,7 +2817,7 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
               <property name="geometry">
                <rect>
                 <x>570</x>
-                <y>80</y>
+                <y>100</y>
                 <width>90</width>
                 <height>24</height>
                </rect>
@@ -3426,6 +3466,96 @@ QSlider::handle:horizontal:pressed {background:darkgrey}
               </property>
               <property name="text">
                <string>Load</string>
+              </property>
+             </widget>
+             <widget class="QLabel" name="PreGameScene_Label">
+              <property name="geometry">
+               <rect>
+                <x>410</x>
+                <y>15</y>
+                <width>161</width>
+                <height>31</height>
+               </rect>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>11</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Pre Game Scene</string>
+              </property>
+             </widget>
+             <widget class="QComboBox" name="PreGameScene_comboBox">
+              <property name="geometry">
+               <rect>
+                <x>570</x>
+                <y>20</y>
+                <width>117</width>
+                <height>24</height>
+               </rect>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>11</pointsize>
+               </font>
+              </property>
+              <property name="currentIndex">
+               <number>-1</number>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QComboBox::AdjustToContents</enum>
+              </property>
+              <property name="minimumContentsLength">
+               <number>10</number>
+              </property>
+              <property name="frame">
+               <bool>true</bool>
+              </property>
+             </widget>
+             <widget class="QLabel" name="CurTimeSource_Label">
+              <property name="geometry">
+               <rect>
+                <x>410</x>
+                <y>350</y>
+                <width>161</width>
+                <height>31</height>
+               </rect>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>11</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Cur Time Source</string>
+              </property>
+             </widget>
+             <widget class="QComboBox" name="CurTimeSource_comboBox">
+              <property name="geometry">
+               <rect>
+                <x>570</x>
+                <y>355</y>
+                <width>117</width>
+                <height>24</height>
+               </rect>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>11</pointsize>
+               </font>
+              </property>
+              <property name="currentIndex">
+               <number>-1</number>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QComboBox::AdjustToContents</enum>
+              </property>
+              <property name="minimumContentsLength">
+               <number>10</number>
+              </property>
+              <property name="frame">
+               <bool>true</bool>
               </property>
              </widget>
             </widget>
