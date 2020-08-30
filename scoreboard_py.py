@@ -99,10 +99,12 @@ class Obs(object):
         'port': 4444,
         'password': "",
         'inGameScene': "",
+        'inPreGameScene': "",
         'inHalfTimeScene': "",
         'clockSource': "",
         'overTimeSource': "",
         'halfTimeSource': "",
+        'curTimeSource': "",
         'homeSource': "",
         'awaySource': "",
         'homeGraphicSource': "",
@@ -121,6 +123,7 @@ class Dynamic(object):
 
     dynamicDict = {
         'halfOn': False,
+        'preOn': False,
         'connectObsButtonOn': False,
         'connectObsLabelOn': False,
         'startServerOn': False,
@@ -176,6 +179,7 @@ class Keys(object):
     sartStop = []
     resetTime = []
     halfTime = []
+    preGame = []
     resetScore = []
     swap = []
     periodUp = []
@@ -194,6 +198,7 @@ class Keys(object):
         'sartStop': [],
         'resetTime': [],
         'halfTime': [],
+        'preGame': [],
         'resetScore': [],
         'swap': [],
         'periodUp': [],
@@ -393,15 +398,15 @@ class MainWindow(QMainWindow):
         if Obs.obsDict['connected']:
             try:
                 if filepath == Files.filesDict['homePath']:
-                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['homeSource'], {'text': value}))
+                    self.obs.call(requests.SetSourceSettings(Obs.obsDict['homeSource'], {'text': value}))
                 elif filepath == Files.filesDict['awayPath']:
-                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['awaySource'], {'text': value}))
+                    self.obs.call(requests.SetSourceSettings(Obs.obsDict['awaySource'], {'text': value}))
                 elif filepath == Files.filesDict['homeScorePath']:
-                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['homeScoreSource'], {'text': value}))
+                    self.obs.call(requests.SetSourceSettings(Obs.obsDict['homeScoreSource'], {'text': value}))
                 elif filepath == Files.filesDict['awayScorePath']:
-                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['awayScoreSource'], {'text': value}))
+                    self.obs.call(requests.SetSourceSettings(Obs.obsDict['awayScoreSource'], {'text': value}))
                 elif filepath == Files.filesDict['periodPath']:
-                    self.Obs.obsDict['call'](requests.SetSourceSettings(Obs.obsDict['periodSource'], {'text': value}))
+                    self.obs.call(requests.SetSourceSettings(Obs.obsDict['periodSource'], {'text': value}))
                 elif filepath == Files.filesDict['timePath']:
                     threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['clockSource'], value)).start()
                 elif filepath == Files.filesDict['overTimePath']:
@@ -945,7 +950,7 @@ class MainWindow(QMainWindow):
             self.start_timer()
             if Obs.obsDict['inHalfTimeScene'] != "":
                 try:
-                    self.Obs.obsDict['call'](requests.SetCurrentScene(Obs.obsDict['inHalfTimeScene']))
+                    self.obs.call(requests.SetCurrentScene(Obs.obsDict['inHalfTimeScene']))
                 except:
                     pass
 
@@ -953,7 +958,7 @@ class MainWindow(QMainWindow):
             Settings.settingsDict['halfTime'] = False
             if Obs.obsDict['inGameScene'] != "":
                 try:
-                    self.Obs.obsDict['call'](requests.SetCurrentScene(Obs.obsDict['inGameScene']))
+                    self.obs.call(requests.SetCurrentScene(Obs.obsDict['inGameScene']))
                 except:
                     pass
             self.ui.HalfTimeClock_Label.setText("00:00")
@@ -1442,12 +1447,14 @@ class MainWindow(QMainWindow):
             Obs.obsDict['connected'] = True
             self.ui.ConnectObs_Button.clicked.disconnect()
             self.ui.ConnectObs_Button.clicked.connect(self.obs_disconnect)
-            scenes = self.Obs.obsDict['call'](requests.GetSceneList()).getScenes()
+            scenes = self.obs.call(requests.GetSceneList()).getScenes()
             self.ui.InGameScene_comboBox.addItem("----------")
             self.ui.HalfTimeScene_comboBox.addItem("----------")
+            self.ui.PreGameScene_comboBox.addItem("----------")
             self.ui.ClockSource_comboBox.addItem("----------")
             self.ui.OverTimeClockSource_comboBox.addItem("----------")
             self.ui.HalfTimeClockSource_comboBox.addItem("----------")
+            self.ui.CurTimeSource_comboBox.addItem("----------")
             self.ui.HomeSource_comboBox.addItem("----------")
             self.ui.AwaySource_comboBox.addItem("----------")
             self.ui.HomeScoreSource_comboBox.addItem("----------")
@@ -1458,7 +1465,7 @@ class MainWindow(QMainWindow):
             for scene in scenes:
                 self.ui.InGameScene_comboBox.addItem(scene['name'])
                 self.ui.HalfTimeScene_comboBox.addItem(scene['name'])
-            sources = self.Obs.obsDict['call'](requests.GetSourcesList()).getSources()
+            sources = self.obs.call(requests.GetSourcesList()).getSources()
             for source in sources:
                 if source['typeId'].startswith("text"):
                     self.ui.ClockSource_comboBox.addItem(source['name'])
@@ -1472,7 +1479,8 @@ class MainWindow(QMainWindow):
                 elif source['typeId'].startswith("image"):
                     self.ui.HomeGraphicSource_comboBox.addItem(source['name'])
                     self.ui.AwayGraphicSource_comboBox.addItem(source['name'])
-        except:
+        except IOError as e:
+            print(e)
             self.error_box(Language.ConnectionToOBS, Language.ObsConError)
             self.set_text_obs_status(Language.NotConnected)
         self.obs_change()
