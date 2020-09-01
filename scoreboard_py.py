@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
         self.ui.HalfTime_Button.clicked.connect(self.on_half_time)
         self.ui.StopSound_Button.setVisible(False)
         self.ui.StopSound_Button.clicked.connect(self.play_sound)
-        self.ui.PreGame_Button.clicked.connect(self.pregame)
+        self.ui.PreGame_Button.clicked.connect(self.on_pregame)
         self.pm = QPixmap("greydot16.png")
         self.ui.ImageLabel.setPixmap(self.pm);
         self.ui.ImageLabel.setScaledContents(True);
@@ -353,9 +353,11 @@ class MainWindow(QMainWindow):
         self.ui.ConnectObs_Button.clicked.connect(self.on_obs_button)
         self.ui.InGameScene_comboBox.currentIndexChanged[str].connect(self.obs_in_game_scene_set)
         self.ui.HalfTimeScene_comboBox.currentIndexChanged[str].connect(self.obs_half_time_scene_set)
+        self.ui.PreGameScene_comboBox.currentIndexChanged[str].connect(self.obs_pre_game_scene_set)
         self.ui.ClockSource_comboBox.currentIndexChanged[str].connect(self.obs_clock_source_set)
         self.ui.OverTimeClockSource_comboBox.currentIndexChanged[str].connect(self.obs_overtime_clock_source_set)
         self.ui.HalfTimeClockSource_comboBox.currentIndexChanged[str].connect(self.obs_halftime_clock_source_set)
+        self.ui.CurTimeSource_comboBox.currentIndexChanged[str].connect(self.obs_curtime_clock_source_set)
         self.ui.HomeSource_comboBox.currentIndexChanged[str].connect(self.obs_home_source_set)
         self.ui.AwaySource_comboBox.currentIndexChanged[str].connect(self.obs_away_source_set)
         self.ui.HomeScoreSource_comboBox.currentIndexChanged[str].connect(self.obs_home_score_source_set)
@@ -862,7 +864,7 @@ class MainWindow(QMainWindow):
 
     # -------------------------- B U T T O N S ------------------------------------
 
-    def pregame(self):
+    def on_pregame(self):
 
         #self.ui.PreGame_radioButton.setEnabled(True)
         #self.ui.PreGame_radioButton.setCheckable(True)
@@ -1465,12 +1467,14 @@ class MainWindow(QMainWindow):
             for scene in scenes:
                 self.ui.InGameScene_comboBox.addItem(scene['name'])
                 self.ui.HalfTimeScene_comboBox.addItem(scene['name'])
+                self.ui.PreGameScene_comboBox.addItem(scene['name'])
             sources = self.obs.call(requests.GetSourcesList()).getSources()
             for source in sources:
                 if source['typeId'].startswith("text"):
                     self.ui.ClockSource_comboBox.addItem(source['name'])
                     self.ui.OverTimeClockSource_comboBox.addItem(source['name'])
                     self.ui.HalfTimeClockSource_comboBox.addItem(source['name'])
+                    self.ui.CurTimeSource_comboBox.addItem(source['name'])
                     self.ui.HomeSource_comboBox.addItem(source['name'])
                     self.ui.AwaySource_comboBox.addItem(source['name'])
                     self.ui.HomeScoreSource_comboBox.addItem(source['name'])
@@ -1490,10 +1494,12 @@ class MainWindow(QMainWindow):
         Obs.obsDict['connected'] = False
         self.ui.InGameScene_comboBox.clear()
         self.ui.HalfTimeScene_comboBox.clear()
+        self.ui.PreGameScene_comboBox.clear()
         self.ui.ClockSource_comboBox.clear()
         self.ui.ClockSource_comboBox.clear()
         self.ui.OverTimeClockSource_comboBox.clear()
         self.ui.HalfTimeClockSource_comboBox.clear()
+        self.ui.CurTimeSource_comboBox.clear()
         self.ui.HomeSource_comboBox.clear()
         self.ui.AwaySource_comboBox.clear()
         self.ui.HomeScoreSource_comboBox.clear()
@@ -1529,6 +1535,13 @@ class MainWindow(QMainWindow):
             Obs.obsDict['halfTimeSource'] = ""
         else:
             Obs.obsDict['halfTimeSource'] = source
+        self.obs_change()
+
+    def obs_curtime_clock_source_set(self, source):
+        if int(self.ui.CurTimeSource_comboBox.currentIndex()) == 0:
+            Obs.obsDict['curTimeSource'] = ""
+        else:
+            Obs.obsDict['curTimeSource'] = source
         self.obs_change()
 
     def obs_home_source_set(self, source):
@@ -1594,6 +1607,13 @@ class MainWindow(QMainWindow):
             Obs.obsDict['inHalfTimeScene'] = scene
         self.obs_change()
 
+    def obs_pre_game_scene_set(self, scene):
+        if int(self.ui.PreGameScene_comboBox.currentIndex()) == 0:
+            Obs.obsDict['inPreGameScene'] = ""
+        else:
+            Obs.obsDict['inPreGameScene'] = scene
+        self.obs_change()
+
     def on_home_graphics_browse(self):
         filename = QFileDialog.getOpenFileName(self, Language.OpenImage, "", Language.ImageFiles)
         path = os.path.abspath(filename[0])
@@ -1639,9 +1659,11 @@ class MainWindow(QMainWindow):
         settings = QSettings(path, QSettings.IniFormat)
         settings.setValue("ingamescene", Obs.obsDict['inGameScene'])
         settings.setValue("halftimescene", Obs.obsDict['inHalfTimeScene'])
+        settings.setValue("pregamescene", Obs.obsDict['inPreGameScene'])
         settings.setValue("clocksource", Obs.obsDict['clockSource'])
         settings.setValue("overtimeclocksource", Obs.obsDict['overTimeSource'])
         settings.setValue("halftimeclocksource", Obs.obsDict['halfTimeSource'])
+        settings.setValue("curtimeclocksource", Obs.obsDict['curTimeSource'])
         settings.setValue("homesource", Obs.obsDict['homeSource'])
         settings.setValue("awaysource", Obs.obsDict['awaySource'])
         settings.setValue("homescoresource", Obs.obsDict['homeScoreSource'])
@@ -1665,9 +1687,12 @@ class MainWindow(QMainWindow):
             Obs.obsDict['errlist'].clear()
         self.load_obs_to(settings, self.ui.InGameScene_comboBox, "ingamescene", Obs.obsDict['inGameScene'])
         self.load_obs_to(settings, self.ui.HalfTimeScene_comboBox, "halftimescene", Obs.obsDict['inHalfTimeScene'])
+        self.load_obs_to(settings, self.ui.PreGameScene_comboBox, "pregamescene", Obs.obsDict['inPreGameScene'])
         self.load_obs_to(settings, self.ui.ClockSource_comboBox, "clocksource", Obs.obsDict['clockSource'])
         self.load_obs_to(settings, self.ui.OverTimeClockSource_comboBox, "overtimeclocksource", Obs.obsDict['overTimeSource'])
         self.load_obs_to(settings, self.ui.HalfTimeClockSource_comboBox, "halftimeclocksource", Obs.obsDict['halfTimeSource'])
+        self.load_obs_to(settings, self.ui.CurTimeSource_comboBox, "curtimeclocksource",
+                         Obs.obsDict['curTimeSource'])
         self.load_obs_to(settings, self.ui.HomeSource_comboBox, "homesource", Obs.obsDict['homeSource'])
         self.load_obs_to(settings, self.ui.AwaySource_comboBox, "awaysource", Obs.obsDict['awaySource'])
         self.load_obs_to(settings, self.ui.HomeScoreSource_comboBox, "homescoresource", Obs.obsDict['homeScoreSource'])
