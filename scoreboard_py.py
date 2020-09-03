@@ -51,7 +51,7 @@ class ScoreBoard(object):
                       'toCheck': False,
                       'timerRunning': False,
                       'overtime': False,
-                      'pregame' : False
+                      'pregame': False
                       }
     
 
@@ -279,6 +279,7 @@ class MainWindow(QMainWindow):
         self.ui.Save_Data_CheckBox.setEnabled(False)
         self.ui.Speed_Input.setValue(Settings.settingsDict['defaultSpeed'])
         self.ui.MicroSpeed_Input.setValue(Settings.settingsDict['defaultTenthSpeed'])
+        self.pm = QPixmap("greydot16.png")
 
         self.start()
 
@@ -312,10 +313,8 @@ class MainWindow(QMainWindow):
         self.ui.StopSound_Button.setVisible(False)
         self.ui.StopSound_Button.clicked.connect(self.play_sound)
         self.ui.PreGame_Button.clicked.connect(self.on_pregame)
-        self.pm = QPixmap("greydot16.png")
         self.ui.ImageLabel.setPixmap(self.pm);
         self.ui.ImageLabel.setScaledContents(True);
-
 
         # -------------------- s e t t i n g s ---------------------------------
 
@@ -410,11 +409,14 @@ class MainWindow(QMainWindow):
                 elif filepath == Files.filesDict['periodPath']:
                     self.obs.call(requests.SetSourceSettings(Obs.obsDict['periodSource'], {'text': value}))
                 elif filepath == Files.filesDict['timePath']:
-                    threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['clockSource'], value)).start()
+                    threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['clockSource'], " "+value+" ")).start()
+                    if Settings.settingsDict['currentTime']:
+                        threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['curTimeSource'], value)).start()
                 elif filepath == Files.filesDict['overTimePath']:
                     threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['overTimeSource'], value)).start()
                 elif filepath == Files.filesDict['halfTimePath']:
                     threading.Thread(target=self.set_time_obs, args=(Obs.obsDict['halfTimeSource'], value)).start()
+
             except:
                 window.error_box(Language.ConnectionToOBS, Language.ConnectionOBSLost)
                 self.obs_disconnect()
@@ -727,7 +729,9 @@ class MainWindow(QMainWindow):
 
     def on_home_change(self):
         ScoreBoard.scoreBoardDict['homeTeam'] = self.ui.HomeName_Input.text()
+        self.save(Files.filesDict['homePath'], str(ScoreBoard.scoreBoardDict['homeTeam']))
         self.scoreboard_change()
+
 
     def on_home_down(self):
         if ScoreBoard.scoreBoardDict['homeScore'] > 0:
@@ -752,6 +756,7 @@ class MainWindow(QMainWindow):
 
     def on_away_change(self):
         ScoreBoard.scoreBoardDict['awayTeam'] = self.ui.AwayName_Input.text()
+        self.save(Files.filesDict['awayPath'], str(ScoreBoard.scoreBoardDict['awayTeam']))
         self.scoreboard_change()
 
     def on_away_down(self):
@@ -864,18 +869,7 @@ class MainWindow(QMainWindow):
 
     # -------------------------- B U T T O N S ------------------------------------
 
-    def on_pregame(self):
 
-        #self.ui.PreGame_radioButton.setEnabled(True)
-        #self.ui.PreGame_radioButton.setCheckable(True)
-        if not ScoreBoard.scoreBoardDict['pregame']:
-            self.pm = QPixmap("reddot16.png")
-            self.ui.ImageLabel.setPixmap(self.pm)
-            ScoreBoard.scoreBoardDict['pregame'] = True
-        else:
-            self.pm = QPixmap("greydot16.png")
-            self.ui.ImageLabel.setPixmap(self.pm)
-            ScoreBoard.scoreBoardDict['pregame'] = False
         
 
     def on_update_team(self):
@@ -941,6 +935,8 @@ class MainWindow(QMainWindow):
     def on_half_time(self):
         if ScoreBoard.scoreBoardDict['timerRunning']:
             self.start_timer()
+        if ScoreBoard.scoreBoardDict['pregame']:
+            self.on_pregame()
         if not Settings.settingsDict['halfTime']:
             Settings.settingsDict['halfTime'] = True
             self.on_period_up()
@@ -969,6 +965,31 @@ class MainWindow(QMainWindow):
             self.ui.HalfTime_Button.setText(Language.HalfTimeText)
             Dynamic.dynamicDict['halfOn'] = False
             self.on_reset_timer(ScoreBoard.scoreBoardDict['period'])
+
+    def on_pregame(self):
+        if (ScoreBoard.scoreBoardDict['timerRunning'] and not Settings.settingsDict['currentTime']) or ScoreBoard.scoreBoardDict['period'] > 1:
+            return
+        if not ScoreBoard.scoreBoardDict['pregame']:
+            self.pm = QPixmap("reddot16.png")
+            self.ui.ImageLabel.setPixmap(self.pm)
+            ScoreBoard.scoreBoardDict['pregame'] = True
+            self.ui.CurrentTime_Radio.setChecked(True)
+            if Obs.obsDict['inPreGameScene'] != "":
+                try:
+                    self.obs.call(requests.SetCurrentScene(Obs.obsDict['inPreGameScene']))
+                except:
+                    pass
+
+        else:
+            self.pm = QPixmap("greydot16.png")
+            self.ui.ImageLabel.setPixmap(self.pm)
+            ScoreBoard.scoreBoardDict['pregame'] = False
+            self.ui.StopWatch_Radio.setChecked(True)
+            if Obs.obsDict['inGameScene'] != "":
+                try:
+                    self.obs.call(requests.SetCurrentScene(Obs.obsDict['inGameScene']))
+                except:
+                    pass
 
     # ------------------------ S E T T I N G S ------------------------------------
 
@@ -1584,6 +1605,8 @@ class MainWindow(QMainWindow):
             Obs.obsDict['homeGraphicSource'] = ""
         else:
             Obs.obsDict['homeGraphicSource'] = source
+            if Obs.obsDict['homeGraphicFile'] != "":
+                self.obs.call(requests.SetSourceSettings(source, {'file': Obs.obsDict['homeGraphicFile']}))
         self.obs_change()
 
     def obs_away_graphics_source_set(self, source):
@@ -1591,6 +1614,8 @@ class MainWindow(QMainWindow):
             Obs.obsDict['awayGraphicSource'] = ""
         else:
             Obs.obsDict['awayGraphicSource'] = source
+            if Obs.obsDict['awayGraphicFile'] != "":
+                self.obs.call(requests.SetSourceSettings(source, {'file': Obs.obsDict['awayGraphicFile']}))
         self.obs_change()
 
     def obs_in_game_scene_set(self, scene):
@@ -1622,6 +1647,9 @@ class MainWindow(QMainWindow):
             return
         Obs.obsDict['homeGraphicFile'] = path
         self.ui.HomeGraphicFile_Input.setText(path)
+        if Obs.obsDict['homeGraphicSource'] != "":
+            self.obs.call(requests.SetSourceSettings(Obs.obsDict['homeGraphicSource'], {'file': path}))
+
         self.obs_change()
 
     def on_away_graphics_browse(self):
@@ -1632,6 +1660,8 @@ class MainWindow(QMainWindow):
             return
         Obs.obsDict['awayGraphicFile'] = path
         self.ui.AwayGraphicFile_Input.setText(path)
+        if Obs.obsDict['awayGraphicSource'] != "":
+            self.obs.call(requests.SetSourceSettings(Obs.obsDict['awayGraphicSource'], {'file': path}))
         self.obs_change()
 
     def set_time_obs(self, source, time):
