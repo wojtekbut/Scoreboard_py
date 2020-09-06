@@ -430,9 +430,9 @@ class MainWindow(QMainWindow):
                 elif filepath == Files.filesDict['awayPath']:
                     self.server.send("Away:"+value)
                 elif filepath == Files.filesDict['homeScorePath']:
-                    self.server.send("HomeScore:"+value)
+                    self.server.send("HomeScore:"+value+"\r\n")
                 elif filepath == Files.filesDict['awayScorePath']:
-                    self.server.send("AwayScore:"+value)
+                    self.server.send("AwayScore:"+value+"\r\n")
                 elif filepath == Files.filesDict['periodPath']:
                     self.server.send("Period:"+value)
                 elif filepath == Files.filesDict['timePath']:

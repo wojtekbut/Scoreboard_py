@@ -36,13 +36,19 @@ class MyServer(QTcpServer):
         print("przysłano: ", message)
         if message == "homeup":
             self.parent.on_home_up()
-            self.send("home:"+self.parent.ui.HomeScore_Label.text())
+            #self.send("home:"+self.parent.ui.HomeScore_Label.text())
         elif message == "homedown":
             self.parent.on_home_down()
         elif message == "awayup":
             self.parent.on_away_up()
         elif message == "awaydown":
             self.parent.on_away_down()
+        elif message == "start":
+            self.parent.start_timer()
+        elif message == "pregame":
+            self.parent.on_pregame()
+        elif message == "halftime":
+            self.parent.on_half_time()
         elif message == "periodup":
             self.parent.on_period_up()
         elif message == "perioddown":
