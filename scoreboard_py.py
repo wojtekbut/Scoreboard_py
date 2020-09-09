@@ -404,6 +404,8 @@ class MainWindow(QMainWindow):
                     self.obs.call(requests.SetSourceSettings(Obs.obsDict['awaySource'], {'text': value}))
                 elif filepath == Files.filesDict['homeScorePath']:
                     self.obs.call(requests.SetSourceSettings(Obs.obsDict['homeScoreSource'], {'text': value}))
+                    sett = self.obs.call(requests.GetSceneItemProperties(Obs.obsDict['homeScoreSource']))
+                    print(sett)
                 elif filepath == Files.filesDict['awayScorePath']:
                     self.obs.call(requests.SetSourceSettings(Obs.obsDict['awayScoreSource'], {'text': value}))
                 elif filepath == Files.filesDict['periodPath']:
@@ -426,15 +428,15 @@ class MainWindow(QMainWindow):
             print("save in server")
             try:
                 if filepath == Files.filesDict['homePath']:
-                    self.server.send("Home:"+value)
+                    self.server.send("Home:"+value+"\r\n")
                 elif filepath == Files.filesDict['awayPath']:
-                    self.server.send("Away:"+value)
+                    self.server.send("Away:"+value+"\r\n")
                 elif filepath == Files.filesDict['homeScorePath']:
                     self.server.send("HomeScore:"+value+"\r\n")
                 elif filepath == Files.filesDict['awayScorePath']:
                     self.server.send("AwayScore:"+value+"\r\n")
                 elif filepath == Files.filesDict['periodPath']:
-                    self.server.send("Period:"+value)
+                    self.server.send("Period:"+value+"\r\n")
                 elif filepath == Files.filesDict['timePath']:
                     threading.Thread(target=self.set_time_remote, args=("Time:"+value,)).start()
                 elif filepath == Files.filesDict['overTimePath']:
@@ -465,11 +467,11 @@ class MainWindow(QMainWindow):
         print("Language.Connected: "+Language.Connected)
         if self.server and self.server.status == Language.Connected:
             print("save_all in server")
-            self.server.send("Home:" + ScoreBoard.scoreBoardDict['homeTeam'])
-            self.server.send("Away:" + ScoreBoard.scoreBoardDict['awayTeam'])
-            self.server.send("HomeScore:" + str(ScoreBoard.scoreBoardDict['homeScore']))
-            self.server.send("AwayScore:" + str(ScoreBoard.scoreBoardDict['awayScore']))
-            self.server.send("Period:" + str(ScoreBoard.scoreBoardDict['period']))
+            self.server.send("Home:" + ScoreBoard.scoreBoardDict['homeTeam']+"\r\n")
+            self.server.send("Away:" + ScoreBoard.scoreBoardDict['awayTeam']+"\r\n")
+            self.server.send("HomeScore:" + str(ScoreBoard.scoreBoardDict['homeScore'])+"\r\n")
+            self.server.send("AwayScore:" + str(ScoreBoard.scoreBoardDict['awayScore'])+"\r\n")
+            self.server.send("Period:" + str(ScoreBoard.scoreBoardDict['period'])+"\r\n")
             threading.Thread(target=self.set_time_remote, args=("Time:" + ScoreBoard.scoreBoardDict['timerString'],)).start()
             threading.Thread(target=self.set_time_remote, args=("Overtime:" + ScoreBoard.scoreBoardDict['overTimeString'],)).start()
             threading.Thread(target=self.set_time_remote, args=("Halftime:" + ScoreBoard.scoreBoardDict['halfTimeString'],)).start()
@@ -679,6 +681,10 @@ class MainWindow(QMainWindow):
         if ScoreBoard.scoreBoardDict['totalTimeSec'] != 0 and ScoreBoard.scoreBoardDict['totalTimeSec'] == ScoreBoard.scoreBoardDict['stopPeriodsec']:
             # print ("total = ", ScoreBoard.scoreBoardDict['totalTimeSec'], " periodEnd = ", ScoreBoard.scoreBoardDict['stopPeriodsec'])
             ScoreBoard.scoreBoardDict['overtime'] = True
+            if Obs.obsDict['connected'] and Obs.obsDict['overTimeSource'] != "" :
+                self.obs.call(requests.SetSceneItemProperties(Obs.obsDict['overTimeSource'], visible=True))
+
+
         self.scoreboard_change()
 
     def set_halftime(self):
@@ -1800,7 +1806,7 @@ class MainWindow(QMainWindow):
 
     def set_time_remote(self, time):
         try:
-            self.server.send(time)
+            self.server.send(time+"\r\n")
         except:
             print("CheckedTrue")
             self.error.setChecked(True)
@@ -2162,6 +2168,8 @@ class MainWindow(QMainWindow):
         ScoreBoard.scoreBoardDict['overtime'] = False
         ScoreBoard.scoreBoardDict['overtimeMinutes'] = 0
         ScoreBoard.scoreBoardDict['overtimeSeconds'] = 0
+        if Obs.obsDict['connected'] and Obs.obsDict['overTimeSource'] != "":
+            self.obs.call(requests.SetSceneItemProperties(Obs.obsDict['overTimeSource'], visible=False))
         self.set_overtime()
 
     def timer_presets_enable(self, enable):

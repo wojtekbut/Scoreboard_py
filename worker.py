@@ -53,6 +53,8 @@ class MyServer(QTcpServer):
             self.parent.on_period_up()
         elif message == "perioddown":
             self.parent.on_period_down()
+        elif message == "reset":
+            self.parent.on_reset_timer()
 
     @Slot(str, str)
     def call_func_parent(self, func, attr):
