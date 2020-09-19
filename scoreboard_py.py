@@ -473,8 +473,10 @@ class MainWindow(QMainWindow):
             self.server.send("AwayScore:" + str(ScoreBoard.scoreBoardDict['awayScore'])+"\r\n")
             self.server.send("Period:" + str(ScoreBoard.scoreBoardDict['period'])+"\r\n")
             threading.Thread(target=self.set_time_remote, args=("Time:" + ScoreBoard.scoreBoardDict['timerString'],)).start()
-            threading.Thread(target=self.set_time_remote, args=("Overtime:" + ScoreBoard.scoreBoardDict['overTimeString'],)).start()
-            threading.Thread(target=self.set_time_remote, args=("Halftime:" + ScoreBoard.scoreBoardDict['halfTimeString'],)).start()
+            if ScoreBoard.scoreBoardDict['overtime']:
+                threading.Thread(target=self.set_time_remote, args=("Overtime:" + ScoreBoard.scoreBoardDict['overTimeString'],)).start()
+            if Settings.settingsDict['halfTime']:
+                threading.Thread(target=self.set_time_remote, args=("Halftime:" + ScoreBoard.scoreBoardDict['halfTimeString'],)).start()
 
 
     def write_xml(self):
@@ -515,6 +517,8 @@ class MainWindow(QMainWindow):
             self.timer.start(speed)
             ScoreBoard.scoreBoardDict['timerRunning'] = True
             self.ui.Start_Button.setText("STOP")
+            if self.server and self.server.status == Language.Connected:
+                self.server.send('Timer:On\r\n')
             self.timer_enable(False)
             self.settings_start_enable(True)
             ScoreBoard.scoreBoardDict['first'] = True
@@ -522,6 +526,8 @@ class MainWindow(QMainWindow):
             self.timer.stop()
             ScoreBoard.scoreBoardDict['timerRunning'] = False
             self.ui.Start_Button.setText("START")
+            if self.server and self.server.status == Language.Connected:
+                self.server.send('Timer:Off\r\n')
             if Settings.settingsDict['stopWatch']:
                 self.stopwatch_enable(True)
             elif Settings.settingsDict['timer']:
@@ -951,10 +957,13 @@ class MainWindow(QMainWindow):
             Language.HalfTimeText = Language.HalfActive
             self.ui.HalfTime_Button.setText(Language.HalfTimeText)
             Dynamic.dynamicDict['halfOn'] = True
+            if Dynamic.dynamicDict['remoteStatus']:
+                self.server.send("halftimebtn:1\r\n")
             self.start_timer()
             if Obs.obsDict['inHalfTimeScene'] != "":
                 try:
                     self.obs.call(requests.SetCurrentScene(Obs.obsDict['inHalfTimeScene']))
+
                 except:
                     pass
 
@@ -970,6 +979,8 @@ class MainWindow(QMainWindow):
             Language.HalfTimeText = Language.Half
             self.ui.HalfTime_Button.setText(Language.HalfTimeText)
             Dynamic.dynamicDict['halfOn'] = False
+            if Dynamic.dynamicDict['remoteStatus']:
+                self.server.send("halftimebtn:0\r\n")
             self.on_reset_timer(ScoreBoard.scoreBoardDict['period'])
 
     def on_pregame(self):
@@ -979,6 +990,8 @@ class MainWindow(QMainWindow):
             self.pm = QPixmap("reddot16.png")
             self.ui.ImageLabel.setPixmap(self.pm)
             ScoreBoard.scoreBoardDict['pregame'] = True
+            if Dynamic.dynamicDict['remoteStatus']:
+                self.server.send("pregamebtn:1\r\n")
             self.ui.CurrentTime_Radio.setChecked(True)
             if Obs.obsDict['inPreGameScene'] != "":
                 try:
@@ -990,6 +1003,8 @@ class MainWindow(QMainWindow):
             self.pm = QPixmap("greydot16.png")
             self.ui.ImageLabel.setPixmap(self.pm)
             ScoreBoard.scoreBoardDict['pregame'] = False
+            if Dynamic.dynamicDict['remoteStatus']:
+                self.server.send("pregamebtn:0\r\n")
             self.ui.StopWatch_Radio.setChecked(True)
             if Obs.obsDict['inGameScene'] != "":
                 try:
@@ -1805,8 +1820,13 @@ class MainWindow(QMainWindow):
         self.remoteNrConnStatus.setText(str(number))
 
     def set_time_remote(self, time):
+        if ScoreBoard.scoreBoardDict['timerRunning']:
+            print('Timer: On')
+        else:
+            print(('Timer: Off'))
         try:
             self.server.send(time+"\r\n")
+
         except:
             print("CheckedTrue")
             self.error.setChecked(True)
