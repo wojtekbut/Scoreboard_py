@@ -837,6 +837,8 @@ class MainWindow(QMainWindow):
                 if ScoreBoard.scoreBoardDict['period'] > 1:
                     ScoreBoard.scoreBoardDict['period'] -= 1
             self.ui.Period_Label.setText(str(ScoreBoard.scoreBoardDict['period']))
+            self.save(Files.filesDict['periodPath'], str(ScoreBoard.scoreBoardDict['period']))
+
             if Settings.settingsDict['timer'] or Settings.settingsDict['currentTime']:
                 self.save(Files.filesDict['periodPath'], str(ScoreBoard.scoreBoardDict['period']))
                 return
@@ -893,6 +895,7 @@ class MainWindow(QMainWindow):
             period = 1
         print("period = ", period)
         ScoreBoard.scoreBoardDict['period'] = period
+        self.save(Files.filesDict['periodPath'], str(ScoreBoard.scoreBoardDict['period']))
         ScoreBoard.scoreBoardDict['totalSetPeriodSec'] = get_sec_from_period()
         ScoreBoard.scoreBoardDict['startPeriodsec'] = get_sec_from_start_period()
         ScoreBoard.scoreBoardDict['stopPeriodsec'] = get_sec_from_end_period()
