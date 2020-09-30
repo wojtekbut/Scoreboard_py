@@ -1,0 +1,17 @@
+[General]
+ingamescene=Czas i Wynik
+halftimescene=HalfTime
+pregamescene=PreGame
+clocksource=czas
+overtimeclocksource=czas extra 2
+halftimeclocksource=halftimeczas
+curtimeclocksource=
+homesource=nazwa gosp
+awaysource=nazwa gosc
+homescoresource=GospScore
+awayscoresource=GoscScore
+periodsource=
+homegraphicsource=
+awaygraphicsource=
+homegraphicfile=
+awaygraphicfile=
