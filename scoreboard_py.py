@@ -95,6 +95,8 @@ class Obs(object):
 
     obsDict = {
         'connected': False,
+        'recording': False,
+        'streaming': False,
         'host': "localhost",
         'port': 4444,
         'password': "",
@@ -1784,6 +1786,14 @@ class MainWindow(QMainWindow):
         for error in Obs.obsDict['errlist']:
             text += "- " + error + "\n"
         return text
+
+    def on_record(self):
+        if Obs.obsDict['connected']:
+            self.obs.call(requests.StartStopRecording())
+
+    def on_stream(self):
+        if Obs.obsDict['connected']:
+            self.obs.call(requests.StartStopStreaming())
 
     # ----------------------------- R E M O T E  -----------------------------------
 

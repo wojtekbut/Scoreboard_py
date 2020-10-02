@@ -55,6 +55,10 @@ class MyServer(QTcpServer):
             self.parent.on_period_down()
         elif message == "reset":
             self.parent.on_reset_timer()
+        elif message =="recording":
+            self.parent.on_record();
+        elif message == "streaming":
+            self.parent.on_stream();
 
     @Slot(str, str)
     def call_func_parent(self, func, attr):
