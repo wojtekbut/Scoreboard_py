@@ -2,6 +2,7 @@
 import sys
 import os.path
 import threading
+import requests as req
 from datetime import datetime
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtMultimedia import QMediaPlayer, QMediaContent
@@ -390,6 +391,7 @@ class MainWindow(QMainWindow):
     # --------------------------------- S A V E ------------------------------------
 
     def save(self, filepath, value):
+        threading.Thread(target=self.write_web_online).start()
         if Settings.settingsDict['writeFile']:
             print("save in files")
             file = open(filepath, "w")
@@ -479,6 +481,10 @@ class MainWindow(QMainWindow):
                 threading.Thread(target=self.set_time_remote, args=("Overtime:" + ScoreBoard.scoreBoardDict['overTimeString'],)).start()
             if Settings.settingsDict['halfTime']:
                 threading.Thread(target=self.set_time_remote, args=("Halftime:" + ScoreBoard.scoreBoardDict['halfTimeString'],)).start()
+            if ScoreBoard.scoreBoardDict['timerRunning']:
+                self.server.send("Timer:On\r\n")
+            else:
+                self.server.send("Timer:Off\r\n")
 
 
     def write_xml(self):
@@ -501,6 +507,19 @@ class MainWindow(QMainWindow):
         xml.writeEndElement()
         xml.writeEndDocument()
         file.close()
+
+    def write_web_online(self):
+        data = {}
+        data['time'] = ScoreBoard.scoreBoardDict['timerString']
+        data['extratime'] = ScoreBoard.scoreBoardDict['overTimeString']
+        data['halftime'] = ScoreBoard.scoreBoardDict['halfTimeString']
+        data['period'] = ScoreBoard.scoreBoardDict['period']
+        data['home'] = ScoreBoard.scoreBoardDict['homeTeam']
+        data['away'] = ScoreBoard.scoreBoardDict['awayTeam']
+        data['homescore'] = ScoreBoard.scoreBoardDict['homeScore']
+        data['awayscore'] = ScoreBoard.scoreBoardDict['awayScore']
+        req.get('http://rycerzejelonek.waw.pl/tabela/writemecz.php', params=data)
+
 
     # ------------------------------- T I M E R ------------------------------------
 
@@ -980,6 +999,7 @@ class MainWindow(QMainWindow):
                 except:
                     pass
             self.ui.HalfTimeClock_Label.setText("00:00")
+            ScoreBoard.scoreBoardDict['halfTimeString'] = "00:00"
             self.save(Files.filesDict['halfTimePath'], "00:00")
             Language.HalfTimeText = Language.Half
             self.ui.HalfTime_Button.setText(Language.HalfTimeText)
@@ -1833,11 +1853,13 @@ class MainWindow(QMainWindow):
         self.remoteNrConnStatus.setText(str(number))
 
     def set_time_remote(self, time):
-        if ScoreBoard.scoreBoardDict['timerRunning']:
-            print('Timer: On')
-        else:
-            print(('Timer: Off'))
         try:
+            if ScoreBoard.scoreBoardDict['timerRunning']:
+                print('Timer: On')
+                #self.server.send('Timer:On\r\n')
+            else:
+                print('Timer: Off')
+                #self.server.send('Timer:Off\r\n')
             self.server.send(time+"\r\n")
 
         except:
